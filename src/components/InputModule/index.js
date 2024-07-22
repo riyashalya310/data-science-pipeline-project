@@ -1,8 +1,13 @@
+import { useState } from "react";
 import Header from "../Footer";
 import Footer from "../Header";
 import "./index.css";
 
 const InputModule = () => {
+  const [inputFile,setInputFile]=useState("");
+  const onChangeInputFile=(event)=>{
+    setInputFile(event.target.value);
+  }
   return (
     <>
       <Header />
@@ -128,7 +133,7 @@ const InputModule = () => {
               <div className="col-12" id="formFile">
                 <div>
                   <div id="label">Select a CSV file for yield inspection</div>
-                  <input className="btn" type="file"></input>
+                  <input className="btn" type="file" value={inputFile} onChange={onChangeInputFile}></input>
                   <div id="helpText">***Make sure the CSV file follows the correct format.***</div>
                 </div>
               </div>
