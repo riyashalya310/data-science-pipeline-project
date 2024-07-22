@@ -1,12 +1,12 @@
 import './App.css';
 import InputModule from './components/InputModule';
-import ViewModule from './components/ViewModule';
+// import ViewModule from './components/ViewModule';
 
 function App() {
   return (
     <div>
     <InputModule/>
-    <ViewModule/>
+    {/* <ViewModule/> */}
     </div>
   );
 }
