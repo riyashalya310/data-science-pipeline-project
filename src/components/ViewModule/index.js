@@ -1,31 +1,24 @@
-import React, { useState, useEffect } from 'react';
+import React from "react";
 
-const ViewModule = (props) => {
-  const { file }=props
-  const [fileContent, setFileContent] = useState(null);
-  
-  useEffect(() => {
-    if (file) {
-      const reader = new FileReader();
-      
-      reader.onload = (event) => {
-        setFileContent(event.target.result);
-      };
-      
-      reader.readAsText(file); // Read the file as text. You can change this if you are dealing with binary files.
-    }
-  }, [file]);
+const ViewModule = ({ state }) => {
+  const { file } = state;
+
+  if (!file) {
+    return <div>No file selected</div>;
+  }
+
+  const fileURL = URL.createObjectURL(file);
 
   return (
-    <div className="file-display">
-      {fileContent ? (
-        <div>
-          <h2>File Content:</h2>
-          <pre>{fileContent}</pre>
-        </div>
-      ) : (
-        <p>No file selected or file is empty.</p>
-      )}
+    <div>
+      <h2>Uploaded File</h2>
+      <div>
+        <p>File Name: {file.name}</p>
+        <p>File Size: {file.size} bytes</p>
+        <a href={fileURL} download={file.name}>
+          Download File
+        </a>
+      </div>
     </div>
   );
 };
