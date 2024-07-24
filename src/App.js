@@ -7,29 +7,18 @@ import ViewModule from "./components/ViewModule";
 import NotFound from "./components/NotFound";
 
 function App() {
-  const [state, changeState] = useState({
-    file: null,
-  });
-
-  const onChangeState = (file) => {
-    changeState({
-      file,
-    });
-    console.log(file);
-  };
-
   return (
     <Router>
       <Switch>
         <Route
           exact
           path="/"
-          render={(props) => <InputModule {...props} onChangeState={onChangeState} />}
+          render={(props) => <InputModule {...props}  />}
         />
         <Route
           exact
           path="/view"
-          render={(props) => <ViewModule {...props} state={state} />}
+          render={(props) => <ViewModule {...props}/>}
         />
         <Route exact path="/analysis" component={AnalysisModule} />
         <Route path="*" component={NotFound} />

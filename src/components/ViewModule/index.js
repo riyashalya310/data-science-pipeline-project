@@ -1,8 +1,7 @@
 import React from "react";
 
-const ViewModule = ({ state }) => {
-  const { file } = state;
-
+const ViewModule = (props) => {
+  const file=null;
   if (!file) {
     return <div>No file selected</div>;
   }
