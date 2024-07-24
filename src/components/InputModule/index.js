@@ -2,17 +2,23 @@ import { useState } from "react";
 import Header from "../Footer";
 import Footer from "../Header";
 import "./index.css";
+import { useDispatch } from "react-redux";
+import { addFile } from "../../store/slices/userSlice";
 
 const InputModule = (props) => {
-  const {onChangeState}=props;
   // State to store the file
   const [inputFile, setInputFile] = useState(null);
 
+  const dispatch=useDispatch();
+
   // Handler for file input change
   const onChangeInputFile = (event) => {
-    setInputFile(event.target.files[0]);
-    console.log("") // Get the first file from the FileList object
+    setInputFile(event.target.files[0]); // Get the first file from the FileList object
   };
+
+  const addNewFile=(inputFile)=>{
+    dispatch(addFile(inputFile));
+  }
 
   // Handler for form submission
   const handleSubmit = (event) => {
@@ -20,9 +26,9 @@ const InputModule = (props) => {
 
     if (inputFile) {
       // Here you can handle the file (e.g., upload it to a server)
-      onChangeState(inputFile);
+      addNewFile(inputFile);
       const {history}=props;
-      history.replace('view')
+      history.replace('/view')
     } else {
       console.log("No file selected");
     }

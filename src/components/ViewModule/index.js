@@ -1,27 +1,24 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
+import { useSelector } from 'react-redux';
 
-const ViewModule = (props) => {
-  const { file }=props
-  const [fileContent, setFileContent] = useState(null);
-  
-  useEffect(() => {
-    if (file) {
-      const reader = new FileReader();
-      
-      reader.onload = (event) => {
-        setFileContent(event.target.result);
-      };
-      
-      reader.readAsText(file); // Read the file as text. You can change this if you are dealing with binary files.
-    }
-  }, [file]);
+const ViewModule = () => {
+  // Get the list of files from the Redux state
+  const files = useSelector((state) => state.users);
 
   return (
     <div className="file-display">
-      {fileContent ? (
+      {files.length > 0 ? (
         <div>
-          <h2>File Content:</h2>
-          <pre>{fileContent}</pre>
+          <h2>Files:</h2>
+          <ul>
+            {files.map((file, index) => (
+              <li key={index}>
+                <strong>Name:</strong> {file.name}<br />
+                <strong>Size:</strong> {file.size} bytes<br />
+                <strong>Last Modified:</strong> {new Date(file.lastModified).toLocaleString()}
+              </li>
+            ))}
+          </ul>
         </div>
       ) : (
         <p>No file selected or file is empty.</p>
