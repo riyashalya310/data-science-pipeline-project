@@ -1,0 +1,125 @@
+body {
+    font-family: "Arial", sans-serif;
+    margin: 0;
+    padding: 0;
+    background-color: #f5f5f5;
+    color: #333;
+  }
+
+  
+.container-fluid {
+    padding: 30px;
+    background-color: #fff;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    border-radius: 10px;
+    max-width: 800px;
+    margin: 50px auto;
+  }
+
+  h1 {
+    font-size: 2em;
+    color: #004085;
+    border-bottom: 2px solid #004085;
+    padding-bottom: 10px;
+    margin-bottom: 40px;
+  }
+
+  .btn {
+    background-color: #007bff;
+    color: #fff;
+    padding: 10px 10px;
+    margin-bottom: 20px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+  }
+
+
+  .table {
+    max-width: 700px; 
+    margin: 50px auto;
+    overflow-x: auto; 
+    padding: 2px;
+    border-radius: 8px;
+  }
+
+  .table tbody {
+    height: 200px; /* Important for scroll */
+    overflow-y: auto; /* Enable vertical scroll */
+  }
+  
+  .table th,.table td {
+    border-radius: 3px;
+    border: 1px solid #ddd;
+    padding: 10px;
+    text-align: center;
+  }
+  
+  .table th {
+    background-color: #0066d2;
+    color: white;
+  
+  }
+
+  .table th {
+    background-color: #0066d2;
+    color: white;
+    position: sticky;
+    top: 0; /* Fix header to top on scroll */
+    z-index: 1; /* Ensure header stays on top of table content */
+  }
+  
+  .table-striped tbody tr:nth-child(even) {
+    background-color: #f9f9f9;
+  }
+  
+  .table tbody tr:nth-child(n+20) { /*Hide rows aftr 10th row*/
+    display: none;
+  }
+
+  .table-bordered {
+    border: 1px solid #ddd;
+  }
+  
+  .text-center {
+    text-align: center;
+  }
+
+  /* index.css */
+
+.pdf-container {
+  width: 80%;
+  margin: 40px auto;
+  padding: 20px;
+  border: 1px solid #ddd;
+  border-radius: 10px;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+}
+
+.pdf-controls {
+  margin-top: 20px;
+  text-align: center;
+}
+
+.pdf-controls button {
+  margin: 0 10px;
+  padding: 10px 20px;
+  border: none;
+  border-radius: 10px;
+  background-color: #4CAF50;
+  color: #fff;
+  cursor: pointer;
+}
+
+.pdf-controls button:hover {
+  background-color: #3e8e41;
+}
+
+  
+  
+  
+  
+ 
+
+ 
