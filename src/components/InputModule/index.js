@@ -10,7 +10,8 @@ const InputModule = (props) => {
 
   // Handler for file input change
   const onChangeInputFile = (event) => {
-    setInputFile(event.target.files[0]); // Get the first file from the FileList object
+    setInputFile(event.target.files[0]);
+    console.log("") // Get the first file from the FileList object
   };
 
   // Handler for form submission
@@ -26,6 +27,8 @@ const InputModule = (props) => {
       console.log("No file selected");
     }
   };
+
+  const handleFunc=()=>{}
 
   return (
     <>
