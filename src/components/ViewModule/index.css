@@ -20,6 +20,7 @@
     color: white;
     text-align: left;
     padding: 8px;
+    text-align: center;
   }
   
   /* Row styling */
@@ -44,6 +45,25 @@
     padding-bottom: 12px;
   }
   
-  .file-display>div>h2{
+  .file-display>div>div{
     text-align: center;
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .file-display>div>div>button{
+    display: flex;
+    flex-direction: row;
+    height: 40px;
+    text-align: center;
+    align-items: center;
+    justify-content: center;
+    width: fit-content;
+    background-color: #5f55e6;
+  }
+
+  .file-name{
+    font-weight: bold;
   }

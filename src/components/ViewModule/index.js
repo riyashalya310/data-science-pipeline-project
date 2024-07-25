@@ -1,16 +1,28 @@
-import React from 'react';
-import { useSelector } from 'react-redux';
-import './index.css'
+import React from "react";
+import { useSelector } from "react-redux";
+import { FaArrowRight } from "react-icons/fa";
+import "./index.css"; // Import your CSS file here
 
-const ViewModule = () => {
+const ViewModule = (props) => {
   const files = useSelector((state) => state.users);
   const file = files[files.length - 1]; // Get the last uploaded file
+
+  const moveToAnalysisBtn=()=>{
+    const {history}=props;
+    history.push("/analysis")
+  }
 
   return (
     <div className="file-display">
       {file ? (
         <div>
-          <h2>File Content: {file.name}</h2>
+          <div>
+            <h2>File Content: <span className="file-name">{file.name}</span></h2>
+            <button type="button" className="btn btn-primary" onClick={moveToAnalysisBtn}>
+              Start Analysis
+              <FaArrowRight />
+            </button>
+          </div>
           {Array.isArray(file.content) ? (
             <table className="file-table">
               <thead>
