@@ -2,38 +2,36 @@ import { useState } from "react";
 import Header from "../Footer";
 import Footer from "../Header";
 import "./index.css";
-import { useDispatch } from "react-redux";
 import { addFile } from "../../store/slices/userSlice";
+import { useDispatch } from "react-redux";
+import Papa from "papaparse";
 
 const InputModule = (props) => {
-  const { history } = props;
-  // State to store the file
   const [inputFile, setInputFile] = useState(null);
+  const dispatch = useDispatch();
 
-  const dispatch=useDispatch();
-
-  // Handler for file input change
   const onChangeInputFile = (event) => {
-    setInputFile(event.target.files[0]); // Get the first file from the FileList object
+    const file = event.target.files[0];
+    setInputFile(file);
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const text = e.target.result;
+      Papa.parse(text, {
+        header: true,
+        complete: (result) => {
+          dispatch(addFile({ name: file.name, content: result.data }));
+        },
+      });
+    };
+    reader.readAsText(file);
   };
 
-  // Handler for form submission
   const handleSubmit = (event) => {
-    event.preventDefault(); // Prevent the default form submission
-
-    if (inputFile) {
-      // Here you can handle the file (e.g., upload it to a server)
-      dispatch(addFile({
-        name: inputFile.name,
-        size: inputFile.size,
-        lastModified: inputFile.lastModified,
-      }));
-      history.replace("/view");
-      console.log(inputFile);
-    } else {
-      console.log("No file selected");
-    }
+    event.preventDefault();
+    const { history } = props;
+    history.replace("view");
   };
+
 
   return (
     <>
@@ -171,7 +169,7 @@ const InputModule = (props) => {
                 <ul>
                   <li>
                     <em>Objective:</em> Set up mechanisms for continuous
-                    monitoring and maintenance of the pipeline’s performance.
+                    monitoring and maintenance of the pipeline's performance.
                   </li>
                   <li>
                     <em>Benefit:</em> Ensures the pipeline remains efficient,
