@@ -1,0 +1,49 @@
+/* Add this CSS to your styles file, e.g., ViewModule.css */
+
+/* Container styling */
+.file-display {
+    margin: 20px;
+  }
+  
+  /* Table styling */
+  .file-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 20px;
+    font-size: 16px;
+    text-align: center;
+  }
+  
+  /* Header styling */
+  .file-table th {
+    background-color: #4CAF50;
+    color: white;
+    text-align: left;
+    padding: 8px;
+  }
+  
+  /* Row styling */
+  .file-table td, .file-table th {
+    border: 1px solid #ddd;
+    padding: 8px;
+  }
+  
+  /* Alternate row styling */
+  .file-table tr:nth-child(even) {
+    background-color: #f2f2f2;
+  }
+  
+  /* Hover effect */
+  .file-table tr:hover {
+    background-color: #ddd;
+  }
+  
+  /* Table header styling */
+  .file-table th {
+    padding-top: 12px;
+    padding-bottom: 12px;
+  }
+  
+  .file-display>div>h2{
+    text-align: center;
+  }

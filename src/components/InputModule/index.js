@@ -2,23 +2,26 @@ import { useState } from "react";
 import Header from "../Footer";
 import Footer from "../Header";
 import "./index.css";
-import { useDispatch } from "react-redux";
 import { addFile } from "../../store/slices/userSlice";
+import { useDispatch } from "react-redux";
+import Papa from "papaparse";
 
 const InputModule = (props) => {
-  // State to store the file
   const [inputFile, setInputFile] = useState(null);
+  const dispatch = useDispatch();
 
-  const dispatch=useDispatch();
-
-  // Handler for file input change
   const onChangeInputFile = (event) => {
     const file = event.target.files[0];
     setInputFile(file);
     const reader = new FileReader();
     reader.onload = (e) => {
       const text = e.target.result;
-      dispatch(addFile({ name: file.name, content: text }));
+      Papa.parse(text, {
+        header: true,
+        complete: (result) => {
+          dispatch(addFile({ name: file.name, content: result.data }));
+        },
+      });
     };
     reader.readAsText(file);
   };
@@ -26,8 +29,9 @@ const InputModule = (props) => {
   const handleSubmit = (event) => {
     event.preventDefault();
     const { history } = props;
-    history.replace('view');
+    history.replace("view");
   };
+
 
   return (
     <>
