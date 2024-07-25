@@ -13,28 +13,21 @@ const InputModule = (props) => {
 
   // Handler for file input change
   const onChangeInputFile = (event) => {
-    setInputFile(event.target.files[0]); // Get the first file from the FileList object
+    const file = event.target.files[0];
+    setInputFile(file);
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const text = e.target.result;
+      dispatch(addFile({ name: file.name, content: text }));
+    };
+    reader.readAsText(file);
   };
 
-  const addNewFile=(inputFile)=>{
-    dispatch(addFile(inputFile));
-  }
-
-  // Handler for form submission
   const handleSubmit = (event) => {
-    event.preventDefault(); // Prevent the default form submission
-
-    if (inputFile) {
-      // Here you can handle the file (e.g., upload it to a server)
-      addNewFile(inputFile);
-      const {history}=props;
-      history.replace('/view')
-    } else {
-      console.log("No file selected");
-    }
+    event.preventDefault();
+    const { history } = props;
+    history.replace('view');
   };
-
-  const handleFunc=()=>{}
 
   return (
     <>

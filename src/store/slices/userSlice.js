@@ -5,7 +5,10 @@ const userSlice=createSlice({
     initialState: [],
     reducers:{
         addFile: (state,action)=>{
-            state.push(action.payload)
+            state.push({
+                name: action.payload.name,
+                content: action.payload.content,
+              })
         },
         removeFile: (state,action)=>{
             state.splice(action.payload,1)
