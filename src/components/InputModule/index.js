@@ -20,6 +20,7 @@ const InputModule = (props) => {
         header: true,
         complete: (result) => {
           dispatch(addFile({ name: file.name, content: result.data }));
+          localStorage.setItem('file', JSON.stringify(inputFile));
         },
       });
     };
