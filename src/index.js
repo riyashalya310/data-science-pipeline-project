@@ -5,11 +5,14 @@ import App from './App';
 import reportWebVitals from './reportWebVitals';
 import { Provider } from 'react-redux';
 import store from './store';
+import DndProviderWrapper from '../src/components/DndProvider'
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(
   <Provider store={store}>
+    <DndProviderWrapper>
     <App />
+    </DndProviderWrapper>
   </Provider>
 );
 

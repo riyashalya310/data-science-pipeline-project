@@ -1,0 +1,80 @@
+/* Add this CSS to your styles file, e.g., ViewModule.css */
+
+/* Container styling */
+/* .file-display-analysis {
+    margin: 20px;
+  } */
+  
+  /* Table styling */
+  .file-table-analysis{
+    width: 30%;
+    border-collapse: collapse;
+    margin-top: 20px;
+    font-size: 16px;
+    text-align: center;
+  }
+  
+  /* Header styling */
+  .file-table-analysis th {
+    background-color: #4CAF50;
+    color: white;
+    text-align: left;
+    padding: 3px;
+    text-align: center;
+  }
+  
+  /* Row styling */
+  .file-table-analysis td, .file-table-analysis th {
+    border: 1px solid #ddd;
+    padding: 3px;
+  }
+  
+  /* Alternate row styling */
+  .file-table-analysis tr:nth-child(even) {
+    background-color: #f2f2f2;
+  }
+  
+  /* Hover effect */
+  .file-table-analysis tr:hover {
+    background-color: #ddd;
+  }
+  
+  /* Table header styling */
+  .file-table-analysis th {
+    padding-top: 3px;
+    padding-bottom: 3px;
+  }
+
+  .file-analysis-upper-container{
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .file-display-analysis>div:nth-of-type(1)>div:nth-of-type(1)>button{
+    display: flex;
+    flex-direction: row;
+    height: 40px;
+    text-align: center;
+    align-items: center;
+    justify-content: center;
+    width: fit-content;
+    background-color: #5f55e6;
+  }
+
+  .file-name-analysis{
+    font-weight: bold;
+  }
+
+  .file-display-analysis>div:nth-of-type(1)>div:nth-of-type(2){
+    display: flex;
+    flex-direction: row;
+  }
+
+  .file-display-analysis>div:nth-of-type(1)>div:nth-of-type(2)>div:nth-of-type(1){
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
