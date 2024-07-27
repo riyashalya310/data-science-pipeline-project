@@ -1,5 +1,6 @@
 .file-display-analysis {
   margin: 20px;
+  margin-left: 20px;
 }
 
 .file-analysis-upper-container {
@@ -46,6 +47,7 @@
   display: flex;
   flex-wrap: wrap;
   justify-content: space-between;
+  height: 60px;
 }
 
 .chart-icons-container > div {

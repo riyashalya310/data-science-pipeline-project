@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { useSelector } from 'react-redux';
-import { IoMdArrowBack } from 'react-icons/io';
 import { MdOutlineStackedBarChart } from 'react-icons/md';
 import { FaChartBar, FaChartArea, FaChartPie, FaFilter } from 'react-icons/fa';
 import { FaTableCells } from 'react-icons/fa6';
@@ -12,6 +11,7 @@ import ChartIcon from '../ChartIcon';
 import DropZone from '../DropZone';
 import TableColumn from '../TableColumn';
 import './index.css';
+import SampleDataNavbar from '../SampleDataNavbar';
 
 const AnalysisModule = () => {
   const files = useSelector((state) => state.users);
@@ -19,9 +19,6 @@ const AnalysisModule = () => {
   const [charts, setCharts] = useState([]);
   const [columnData, setColumnData] = useState({});
 
-  const backBtn = () => {
-    window.history.back();
-  };
 
   const handleDrop = (item) => {
     setCharts((prevCharts) => [...prevCharts, { ...item, data: null }]);
@@ -68,14 +65,12 @@ const AnalysisModule = () => {
   };
 
   return (
+    <>
+    <SampleDataNavbar/>
     <div className="file-display-analysis">
       {file ? (
         <div>
           <div className="file-analysis-upper-container">
-            <button type="button" className="btn btn-primary" onClick={backBtn}>
-              <IoMdArrowBack />
-              Back
-            </button>
             <h2>
               File Content: <span className="file-name-analysis">{file.name}</span>
             </h2>
@@ -107,7 +102,7 @@ const AnalysisModule = () => {
                     icon={<MdOutlineStackedBarChart />}
                     label="Stacked Bar"
                     onDropColumn={handleDropColumn}
-                    style={{height: "60px",textAlign: "center"}}
+                    style={{height: "20px",textAlign: "center"}}
                   />
                   <ChartIcon
                     type="bar"
@@ -194,6 +189,7 @@ const AnalysisModule = () => {
         <p>No file selected or file is empty.</p>
       )}
     </div>
+    </>
   );
 };
 
