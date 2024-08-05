@@ -7,6 +7,7 @@ import { AiOutlineLineChart } from 'react-icons/ai';
 import { LuScatterChart } from 'react-icons/lu';
 import { RiDonutChartFill } from 'react-icons/ri';
 import { TbChartTreemap } from 'react-icons/tb';
+import { IoMdArrowBack } from 'react-icons/io';
 import ChartIcon from '../ChartIcon';
 import DropZone from '../DropZone';
 import TableColumn from '../TableColumn';
@@ -18,6 +19,10 @@ const AnalysisModule = () => {
   const file = files[files.length - 1];
   const [charts, setCharts] = useState([]);
   const [columnData, setColumnData] = useState({});
+
+  const backBtn = () => {
+    window.history.back();
+};
 
 
   const handleDrop = (item) => {
@@ -66,11 +71,14 @@ const AnalysisModule = () => {
 
   return (
     <>
-    <SampleDataNavbar/>
     <div className="file-display-analysis">
       {file ? (
         <div>
           <div className="file-analysis-upper-container">
+          <button type="button" className="btn btn-primary" onClick={backBtn}>
+              <IoMdArrowBack />
+              Back
+            </button>
             <h2>
               File Content: <span className="file-name-analysis">{file.name}</span>
             </h2>
