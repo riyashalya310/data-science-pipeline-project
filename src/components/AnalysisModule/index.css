@@ -1,0 +1,87 @@
+.file-display-analysis {
+  margin: 20px;
+  margin-left: 20px;
+}
+
+.file-analysis-upper-container {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.file-analysis-upper-container button {
+  display: flex;
+  align-items: center;
+  background-color: #5f55e6;
+  color: white;
+  border: none;
+  padding: 10px;
+  cursor: pointer;
+}
+
+.file-name-analysis {
+  font-weight: bold;
+}
+
+.file-analysis-main-content {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  margin-top: 20px;
+}
+
+.upper-section {
+  display: flex;
+  flex-direction: row;
+  width: 100%;
+}
+
+.dropzone-container {
+  width: 50%;
+  margin-right: 20px;
+}
+
+.chart-icons-container {
+  width: 50%;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  height: 60px;
+}
+
+.chart-icons-container > div {
+  flex: 1 1 calc(50% - 10px);
+  margin: 5px;
+}
+
+.table-container {
+  margin-top: 20px;
+}
+
+.file-table-analysis {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 16px;
+  text-align: center;
+}
+
+.file-table-analysis th {
+  background-color: #4caf50;
+  color: white;
+  padding: 3px;
+}
+
+.file-table-analysis td,
+.file-table-analysis th {
+  border: 1px solid #ddd;
+  padding: 3px;
+}
+
+.file-table-analysis tr:nth-child(even) {
+  background-color: #f2f2f2;
+}
+
+.file-table-analysis tr:hover {
+  background-color: #ddd;
+}
