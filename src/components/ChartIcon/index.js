@@ -1,7 +1,7 @@
 import React from 'react';
 import { useDrag } from 'react-dnd';
 
-const ChartIcon = ({ type, icon, label, onDropColumn }) => {
+const ChartIcon = ({ type, icon, label }) => {
   const [{ isDragging }, drag] = useDrag({
     type: 'CHART',
     item: { type, label },

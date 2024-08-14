@@ -1,10 +1,16 @@
 import React from 'react';
 import { useDrop } from 'react-dnd';
 
-const DropZone = ({ onDrop, children }) => {
+const DropZone = ({ onDrop, onDropColumn, children }) => {
   const [{ isOver }, drop] = useDrop({
-    accept: 'CHART',
-    drop: (item) => onDrop(item),
+    accept: ['CHART', 'COLUMN'],
+    drop: (item, monitor) => {
+      if (monitor.getItemType() === 'CHART') {
+        onDrop(item);
+      } else if (monitor.getItemType() === 'COLUMN') {
+        onDropColumn(item);
+      }
+    },
     collect: (monitor) => ({
       isOver: !!monitor.isOver(),
     }),

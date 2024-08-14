@@ -1,21 +1,68 @@
-/* src/components/AdminDashboard.css */
+/* src/components/index.css */
+
+/* Container for the admin dashboard */
 .admin-dashboard {
   padding: 20px;
+  background-color: #f4f4f4;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
 }
 
+/* Error message styling */
+.error {
+  color: red;
+  font-size: 16px;
+  margin-bottom: 20px;
+  text-align: center;
+}
+
+/* Buttons container */
+.admin-dashboard > div {
+  margin-bottom: 20px;
+  display: flex;
+  justify-content: space-between;
+}
+
+.logout-button {
+  align-self: flex-end;
+}
+
+/* Styling for Previous and Logout buttons */
+.previous-button,
+.logout-button {
+  background-color: #007bff;
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  font-size: 16px;
+  cursor: pointer;
+  border-radius: 5px;
+  transition: background-color 0.3s;
+}
+
+.previous-button:hover,
+.logout-button:hover {
+  background-color: #0056b3;
+}
+
+/* Styling for the table */
 .user-table {
   width: 100%;
   border-collapse: collapse;
+  margin-top: 20px;
 }
 
-.user-table th, .user-table td {
-  border: 1px solid #ddd;
-  padding: 8px;
+.user-table th,
+.user-table td {
+  padding: 12px;
+  text-align: left;
+  border-bottom: 1px solid #ddd;
 }
 
 .user-table th {
-  background-color: #f2f2f2;
-  text-align: left;
+  background-color: #007bff;
+  color: white;
 }
 
 .user-table tr:nth-child(even) {
@@ -23,26 +70,101 @@
 }
 
 .user-table tr:hover {
-  background-color: #ddd;
+  background-color: #f1f1f1;
 }
 
-button {
-  background-color: #4CAF50;
-  border: none;
+/* Styling for action buttons inside the table */
+.user-table button {
+  background-color: #28a745;
   color: white;
-  padding: 8px 16px;
-  text-align: center;
-  text-decoration: none;
-  display: inline-block;
-  margin: 4px 2px;
+  border: none;
+  padding: 5px 10px;
+  font-size: 14px;
   cursor: pointer;
+  border-radius: 3px;
+  margin-right: 5px;
+  transition: background-color 0.3s;
 }
 
-button:hover {
-  background-color: #45a049;
+.user-table button:hover {
+  background-color: #218838;
 }
 
-.error {
-  color: red;
-  text-align: center;
+.user-table button.delete {
+  background-color: #dc3545;
+}
+
+.user-table button.delete:hover {
+  background-color: #c82333;
+}
+
+/* Modal styles */
+.modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000; /* Ensures the modal is on top */
+}
+
+.modal-content {
+  background-color: white;
+  padding: 20px;
+  border-radius: 8px;
+  width: 400px;
+  max-width: 90%;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+.modal-content h2 {
+  margin-top: 0;
+}
+
+.modal-content label {
+  display: block;
+  margin-bottom: 10px;
+  width: 100%;
+}
+
+.modal-content input {
+  width: 100%;
+  padding: 8px;
+  margin-top: 4px;
+  margin-bottom: 20px;
+}
+
+.modal-content button {
+  margin-right: 10px;
+  padding: 8px 16px;
+  cursor: pointer;
+  margin: 10px;
+  width: 100px;
+  flex-grow: 1;
+}
+
+
+/* Insert User button styling */
+.insert-user-button {
+  background-color: #28a745;
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  font-size: 16px;
+  cursor: pointer;
+  border-radius: 5px;
+  transition: background-color 0.3s;
+}
+
+.insert-user-button:hover {
+  background-color: #218838;
+}
+
+/* Modal styles */
+.modal-content input {
+  margin-bottom: 10px; /* Add margin for spacing between fields */
 }

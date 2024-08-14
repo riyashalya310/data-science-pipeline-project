@@ -5,8 +5,9 @@ import { IoMdArrowBack } from "react-icons/io";
 import "./index.css"; // Import your CSS file here
 
 const ViewModule = (props) => {
-  const files = useSelector((state) => state.users);
-  const file = files[files.length - 1]; // Get the last uploaded file
+  // Adjust the selector to correctly access the files array from state
+  const files = useSelector((state) => state.user.files);
+  const file = files.length > 0 ? files[files.length - 1] : null; // Get the last uploaded file if available
 
   const moveToAnalysisBtn = () => {
     const { history } = props;
