@@ -1,13 +1,13 @@
-import React, { useState } from 'react';
-import { useSelector } from 'react-redux';
-import { MdOutlineStackedBarChart } from 'react-icons/md';
-import { FaChartBar, FaChartArea, FaChartPie, FaFilter } from 'react-icons/fa';
-import { FaTableCells } from 'react-icons/fa6';
-import { AiOutlineLineChart } from 'react-icons/ai';
-import { LuScatterChart } from 'react-icons/lu';
-import { RiDonutChartFill } from 'react-icons/ri';
-import { TbChartTreemap } from 'react-icons/tb';
-import { IoMdArrowBack } from 'react-icons/io';
+import React, { useState } from "react";
+import { useSelector } from "react-redux";
+import { MdOutlineStackedBarChart } from "react-icons/md";
+import { FaChartBar, FaChartArea, FaChartPie, FaFilter } from "react-icons/fa";
+import { FaTableCells } from "react-icons/fa6";
+import { AiOutlineLineChart } from "react-icons/ai";
+import { LuScatterChart } from "react-icons/lu";
+import { RiDonutChartFill } from "react-icons/ri";
+import { TbChartTreemap } from "react-icons/tb";
+import { IoMdArrowBack } from "react-icons/io";
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -19,12 +19,12 @@ import {
   Title,
   Tooltip,
   Legend,
-} from 'chart.js';
-import { Bar, Line, Pie } from 'react-chartjs-2';
-import ChartIcon from '../ChartIcon';
-import DropZone from '../DropZone';
-import TableColumn from '../TableColumn';
-import './index.css';
+} from "chart.js";
+import { Bar, Line, Pie, Scatter } from "react-chartjs-2";
+import ChartIcon from "../ChartIcon";
+import DropZone from "../DropZone";
+import TableColumn from "../TableColumn";
+import "./index.css";
 
 // Register the required components
 ChartJS.register(
@@ -43,20 +43,29 @@ const AnalysisModule = () => {
   const files = useSelector((state) => state.user.files);
   const file = files.length > 0 ? files[files.length - 1] : null;
   const [charts, setCharts] = useState([]);
+  const [aggregateResults, setAggregateResults] = useState([]);
+  const [selectedFunction, setSelectedFunction] = useState("");
 
   const backBtn = () => {
     window.history.back();
   };
 
   const handleDrop = (item) => {
-    setCharts((prevCharts) => [...prevCharts, { ...item, data: null, columnName: '' }]);
+    setCharts((prevCharts) => [
+      ...prevCharts,
+      { ...item, data: null, columnName: "" },
+    ]);
   };
 
   const handleDropColumn = (column) => {
     setCharts((prevCharts) =>
       prevCharts.map((chart) =>
         chart.data === null
-          ? { ...chart, data: file.content.map((row) => row[column.columnName]), columnName: column.columnName }
+          ? {
+              ...chart,
+              data: file.content.map((row) => row[column.columnName]),
+              columnName: column.columnName,
+            }
           : chart
       )
     );
@@ -71,21 +80,112 @@ const AnalysisModule = () => {
         {
           label: chart.columnName,
           data: chart.data,
-          backgroundColor: 'rgba(75, 192, 192, 0.6)',
+          backgroundColor:
+            chart.type === "pie" || chart.type === "donut"
+              ? chart.data.map(() => `hsl(${Math.random() * 360}, 70%, 70%)`)
+              : "rgba(75, 192, 192, 0.6)",
         },
       ],
     };
 
     switch (chart.type) {
-      case 'bar':
+      case "bar":
         return <Bar data={chartData} />;
-      case 'line':
+      case "line":
         return <Line data={chartData} />;
-      case 'pie':
-        return <Pie data={chartData} />;
+      case "pie":
+        return (
+          <Pie
+            data={chartData}
+            options={{
+              plugins: {
+                legend: {
+                  position: 'top',
+                },
+                tooltip: {
+                  callbacks: {
+                    label: function (tooltipItem) {
+                      const value = tooltipItem.raw;
+                      return ` ${tooltipItem.label}: ${value}`;
+                    },
+                  },
+                },
+              },
+            }}
+          />
+        );
+      case "scatter":
+        return <Scatter data={chartData} />;
+      case "area":
+        return <Line data={chartData} options={{ elements: { line: { tension: 0.4 } } }} />;
+      case "donut":
+        return (
+          <Pie
+            data={chartData}
+            options={{
+              plugins: {
+                legend: {
+                  position: 'top',
+                },
+                tooltip: {
+                  callbacks: {
+                    label: function (tooltipItem) {
+                      const value = tooltipItem.raw;
+                      return ` ${tooltipItem.label}: ${value}`;
+                    },
+                  },
+                },
+              },
+              circumference: Math.PI,
+              rotation: -Math.PI,
+            }}
+          />
+        );
+      case "treemap":
+        return <p>Treemap chart is not supported with Chart.js. Consider using another library for treemaps.</p>;
       default:
         return <p>No chart type selected</p>;
     }
+  };
+
+  const calculateAggregate = (func) => {
+    if (!file || !file.content || !file.content.length) return;
+
+    const numericalColumns = Object.keys(file.content[0]).filter((key) =>
+      !isNaN(parseFloat(file.content[0][key]))
+    );
+
+    const results = numericalColumns.map((columnName) => {
+      const values = file.content.map((row) =>
+        parseFloat(row[columnName])
+      );
+
+      let result;
+      switch (func) {
+        case "sum":
+          result = values.reduce((acc, value) => acc + value, 0);
+          break;
+        case "count":
+          result = values.length;
+          break;
+        case "average":
+          result = values.reduce((acc, value) => acc + value, 0) / values.length;
+          break;
+        case "min":
+          result = Math.min(...values);
+          break;
+        case "max":
+          result = Math.max(...values);
+          break;
+        default:
+          result = null;
+      }
+
+      return { columnName, result };
+    });
+
+    setAggregateResults(results);
+    setSelectedFunction(func);
   };
 
   return (
@@ -94,27 +194,58 @@ const AnalysisModule = () => {
         {file ? (
           <div>
             <div className="file-analysis-upper-container">
-              <button type="button" className="btn btn-primary" onClick={backBtn}>
+              <button
+                type="button"
+                className="btn btn-primary"
+                onClick={backBtn}
+              >
                 <IoMdArrowBack />
                 Back
               </button>
               <h2>
-                File Content: <span className="file-name-analysis">{file.name}</span>
+                File Content:{" "}
+                <span className="file-name-analysis">{file.name}</span>
               </h2>
+            </div>
+            <div className="aggregate-functions-container">
+              <h1>Aggregate Functions</h1>
+              <div>
+                <button
+                  type="button"
+                  onClick={() => calculateAggregate("average")}
+                >
+                  Display Average
+                </button>
+                <button type="button" onClick={() => calculateAggregate("count")}>
+                  Display Count
+                </button>
+                <button type="button" onClick={() => calculateAggregate("sum")}>
+                  Display Sum
+                </button>
+                <button type="button" onClick={() => calculateAggregate("min")}>
+                  Display Min
+                </button>
+                <button type="button" onClick={() => calculateAggregate("max")}>
+                  Display Max
+                </button>
+              </div>
             </div>
             {Array.isArray(file.content) ? (
               <div className="file-analysis-main-content">
                 <div className="upper-section">
                   <div className="dropzone-container">
-                    <DropZone onDrop={handleDrop} onDropColumn={handleDropColumn}>
+                    <DropZone
+                      onDrop={handleDrop}
+                      onDropColumn={handleDropColumn}
+                    >
                       {charts.map((chart, index) => (
                         <div
                           key={index}
                           style={{
-                            padding: '10px',
-                            border: '1px solid #ddd',
-                            marginBottom: '10px',
-                            background: '#f9f9f9',
+                            padding: "10px",
+                            border: "1px solid #ddd",
+                            marginBottom: "10px",
+                            background: "#f9f9f9",
                           }}
                         >
                           {renderChart(chart)}
@@ -128,11 +259,7 @@ const AnalysisModule = () => {
                       icon={<MdOutlineStackedBarChart />}
                       label="Stacked Bar"
                     />
-                    <ChartIcon
-                      type="bar"
-                      icon={<FaChartBar />}
-                      label="Bar"
-                    />
+                    <ChartIcon type="bar" icon={<FaChartBar />} label="Bar" />
                     <ChartIcon
                       type="line"
                       icon={<AiOutlineLineChart />}
@@ -148,11 +275,7 @@ const AnalysisModule = () => {
                       icon={<LuScatterChart />}
                       label="Scatter"
                     />
-                    <ChartIcon
-                      type="pie"
-                      icon={<FaChartPie />}
-                      label="Pie"
-                    />
+                    <ChartIcon type="pie" icon={<FaChartPie />} label="Pie" />
                     <ChartIcon
                       type="donut"
                       icon={<RiDonutChartFill />}
@@ -190,6 +313,25 @@ const AnalysisModule = () => {
                           {Object.values(row).map((value, i) => (
                             <td key={i}>{value}</td>
                           ))}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                <div className="aggregate-results-container">
+                  <h2>Aggregate Results: {selectedFunction}</h2>
+                  <table className="aggregate-results-table">
+                    <thead>
+                      <tr>
+                        <th>Column Name</th>
+                        <th>Result</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {aggregateResults.map((result, index) => (
+                        <tr key={index}>
+                          <td>{result.columnName}</td>
+                          <td>{result.result}</td>
                         </tr>
                       ))}
                     </tbody>
