@@ -35,7 +35,7 @@ const InputModule = (props) => {
     reader.onload = async (e) => {
       const text = e.target.result;
       await processFile(text, file.name);
-      history.replace("/view"); // Redirect to view module
+      history.replace("/transform"); // Redirect to transform module
     };
     reader.readAsText(file);
   };
@@ -78,8 +78,8 @@ const InputModule = (props) => {
         const text = e.target.result;
         await processFile(text, filename);
 
-        // Redirect to view module after file processing
-        history.replace("/view");
+        // Redirect to transform module after file processing
+        history.replace("/transform");
       };
       reader.readAsText(blob);
     } catch (error) {

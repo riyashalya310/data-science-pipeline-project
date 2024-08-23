@@ -1,0 +1,58 @@
+/* index.css */
+.etl-module-container {
+    display: flex;
+    position: relative;
+  }
+  
+  .etl-content.with-chat-open {
+    width: 50%;
+    transition: width 0.3s ease;
+  }
+  
+  .etl-content.with-chat-closed {
+    width: 100%;
+    transition: width 0.3s ease;
+  }
+  
+  .reopen-chat-btn {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    background: #007bff;
+    color: #fff;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 4px;
+    cursor: pointer;
+  }
+  
+  .reopen-chat-btn.hidden {
+    display: none;
+  }
+  
+  .etl-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  
+  .file-content-heading {
+    flex: 1;
+    text-align: center;
+  }
+  
+  .btn {
+    margin-right: 10px;
+  }
+  
+  .file-table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+  
+  .file-table th,
+  .file-table td {
+    border: 1px solid #ddd;
+    padding: 8px;
+  }
+  

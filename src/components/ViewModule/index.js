@@ -16,7 +16,7 @@ const ViewModule = (props) => {
 
   const backBtn = () => {
     const { history } = props;
-    history.push("/");
+    history.push("/transform");
   };
 
   return (

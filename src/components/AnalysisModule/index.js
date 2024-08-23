@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useRef, useState } from "react";
 import { useSelector } from "react-redux";
 import { MdOutlineStackedBarChart } from "react-icons/md";
 import { FaChartBar, FaChartArea, FaChartPie, FaFilter } from "react-icons/fa";
@@ -24,6 +24,8 @@ import { Bar, Line, Pie, Scatter } from "react-chartjs-2";
 import ChartIcon from "../ChartIcon";
 import DropZone from "../DropZone";
 import TableColumn from "../TableColumn";
+import html2canvas from 'html2canvas';
+import jsPDF from 'jspdf';
 import "./index.css";
 
 // Register the required components
@@ -45,6 +47,9 @@ const AnalysisModule = () => {
   const [charts, setCharts] = useState([]);
   const [aggregateResults, setAggregateResults] = useState([]);
   const [selectedFunction, setSelectedFunction] = useState("");
+
+  const aggregateResultsRef=useRef(null);
+  const analysisRef = useRef();  
 
   const backBtn = () => {
     window.history.back();
@@ -186,11 +191,25 @@ const AnalysisModule = () => {
 
     setAggregateResults(results);
     setSelectedFunction(func);
+    aggregateResultsRef.current.scrollIntoView({ behavior: "smooth" });
+  };
+
+  const downloadPDF = () => {
+    const input = analysisRef.current;
+    html2canvas(input).then((canvas) => {
+      const imgData = canvas.toDataURL("image/png");
+      const pdf = new jsPDF("p", "mm", "a4");
+      const imgProps = pdf.getImageProperties(imgData);
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+      pdf.addImage(imgData, "PNG", 0, 0, pdfWidth, pdfHeight);
+      pdf.save(`${file ? file.name : "analysis"}.pdf`);
+    });
   };
 
   return (
     <>
-      <div className="file-display-analysis">
+      <div className="file-display-analysis" ref={analysisRef}>
         {file ? (
           <div>
             <div className="file-analysis-upper-container">
@@ -201,6 +220,14 @@ const AnalysisModule = () => {
               >
                 <IoMdArrowBack />
                 Back
+              </button>
+              <button
+                type="button"
+                className="btn btn-secondary"
+                onClick={downloadPDF}
+                style={{ marginLeft: '10px' }}
+              >
+                Download PDF
               </button>
               <h2>
                 File Content:{" "}
@@ -318,7 +345,7 @@ const AnalysisModule = () => {
                     </tbody>
                   </table>
                 </div>
-                <div className="aggregate-results-container">
+                <div className="aggregate-results-container" ref={aggregateResultsRef}>
                   <h2>Aggregate Results: {selectedFunction}</h2>
                   <table className="aggregate-results-table">
                     <thead>
