@@ -28,7 +28,7 @@ const ETLModule = (props) => {
   };
 
   const handleSendMessage = (message) => {
-    let updatedContent = [...file.content]; // Clone the file content
+    let updatedContent = [...filteredContent]; // Clone the filteredContent
     let initialMessage = "";
     let finalMessage = "";
 
@@ -47,7 +47,7 @@ const ETLModule = (props) => {
         return !hasNull;
       });
 
-      if (updatedContent.length < file.content.length) {
+      if (updatedContent.length < filteredContent.length) {
         finalMessage = "Great! Null values handled.";
       } else {
         finalMessage = "No null values present.";
@@ -71,7 +71,7 @@ const ETLModule = (props) => {
         }
       });
 
-      if (updatedContent.length < file.content.length) {
+      if (updatedContent.length < filteredContent.length) {
         finalMessage = "Great! Duplicates removed.";
       } else {
         finalMessage = "No duplicates found.";
