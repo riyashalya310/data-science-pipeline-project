@@ -14,6 +14,7 @@ const ETLModule = (props) => {
     { type: "bot", text: "Hello! I'm here to assist you with your data. What would you like to do?" },
     { type: "bot", text: "Please select an option from the dropdown below." },
   ]);
+  const [filteredContent, setFilteredContent] = useState(file ? file.content : []); // Add filteredContent state
   const dispatch = useDispatch();
 
   const moveToAnalysisBtn = () => {
@@ -51,8 +52,14 @@ const ETLModule = (props) => {
       } else {
         finalMessage = "No null values present.";
       }
+
+      // Update the filteredContent state to re-render the table with the updated content
+      setFilteredContent(updatedContent);
+
     } else if (message === "Remove Duplicates") {
       initialMessage = "Removing duplicate rows...";
+
+      // Process content to remove duplicate rows
       const uniqueContent = new Set();
       updatedContent = updatedContent.filter(row => {
         const rowString = JSON.stringify(row);
@@ -63,7 +70,16 @@ const ETLModule = (props) => {
           return true;
         }
       });
-      finalMessage = "Great! Duplicates removed.";
+
+      if (updatedContent.length < file.content.length) {
+        finalMessage = "Great! Duplicates removed.";
+      } else {
+        finalMessage = "No duplicates found.";
+      }
+
+      // Update the filteredContent state to re-render the table with the updated content
+      setFilteredContent(updatedContent);
+
     } else if (message === "Exit") {
       initialMessage = "Exiting...";
       finalMessage = "Great! Ask me a question whenever you want!";
@@ -105,17 +121,17 @@ const ETLModule = (props) => {
                 <FaArrowRight />
               </button>
             </div>
-            {Array.isArray(file.content) ? (
+            {Array.isArray(filteredContent) && filteredContent.length > 0 ? ( // Display filteredContent
               <table className="file-table">
                 <thead>
                   <tr>
-                    {Object.keys(file.content[0]).map((key) => (
+                    {Object.keys(filteredContent[0]).map((key) => (
                       <th key={key}>{key}</th>
                     ))}
                   </tr>
                 </thead>
                 <tbody>
-                  {file.content.map((row, index) => (
+                  {filteredContent.map((row, index) => (
                     <tr key={index}>
                       {Object.values(row).map((value, i) => (
                         <td key={i}>{value}</td>
@@ -125,7 +141,7 @@ const ETLModule = (props) => {
                 </tbody>
               </table>
             ) : (
-              <p>The file content is not in the expected format.</p>
+              <p>The file content is not in the expected format or no data available.</p>
             )}
           </div>
         ) : (
