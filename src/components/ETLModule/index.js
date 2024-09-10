@@ -4,7 +4,7 @@ import { FaArrowRight } from "react-icons/fa";
 import { IoMdArrowBack } from "react-icons/io";
 import ChatSidebar from "../SideBar"; // Adjust import path as necessary
 import "./index.css"; // Import your CSS file for styling
-import { updateFileContent } from "../../redux/actions"; // Ensure correct path
+import { updateFile } from "../../store/slices/userSlice"; // Correct import path
 
 const ETLModule = (props) => {
   const files = useSelector((state) => state.user.files);
@@ -84,7 +84,7 @@ const ETLModule = (props) => {
         setAwaitingColumnInput(false);
   
         // Dispatch the updated content to the Redux store
-        dispatch(updateFileContent(file.name, updatedContent));
+        dispatch(updateFile({ name: file.name, content: updatedContent }));
       } else {
         finalMessage =
           "Invalid format. Please write it as - {column name} : {dtype:}.";
@@ -133,7 +133,7 @@ const ETLModule = (props) => {
       finalMessage = updatedContent.length < filteredContent.length ? "Great! Null values handled." : "No null values present.";
   
       setFilteredContent(updatedContent);
-      dispatch(updateFileContent(file.name, updatedContent)); // Dispatch updated content
+      dispatch(updateFile({ name: file.name, content: updatedContent })); // Dispatch updated content
   
       setMessages((prevMessages) => [
         ...prevMessages,
@@ -158,7 +158,7 @@ const ETLModule = (props) => {
       finalMessage = updatedContent.length < filteredContent.length ? "Great! Duplicates removed." : "No duplicates found.";
   
       setFilteredContent(updatedContent);
-      dispatch(updateFileContent(file.name, updatedContent)); // Dispatch updated content
+      dispatch(updateFile({ name: file.name, content: updatedContent })); // Dispatch updated content
   
       setMessages((prevMessages) => [
         ...prevMessages,
@@ -167,25 +167,22 @@ const ETLModule = (props) => {
         { type: "bot", text: "Please select an option from the dropdown below." },
       ]);
     } else if (message === "Exit") {
-      initialMessage = "Exiting...";
-      finalMessage = "Great! Ask me a question whenever you want!";
+      initialMessage = "Goodbye!";
       setIsChatOpen(false);
-  
       setMessages((prevMessages) => [
         ...prevMessages,
         { type: "bot", text: initialMessage },
-        { type: "bot", text: finalMessage },
       ]);
     } else {
+      finalMessage =
+        "I'm sorry, I didn't understand that. Please select an option from the dropdown.";
       setMessages((prevMessages) => [
         ...prevMessages,
-        { type: "bot", text: "Please choose a valid option from the dropdown." },
+        { type: "bot", text: finalMessage },
       ]);
     }
-  };  
+  };
   
-  
-
   return (
     <div className="etl-module-container">
       <div className={`etl-content ${isChatOpen ? "with-chat-open" : "with-chat-closed"}`}>
@@ -230,19 +227,21 @@ const ETLModule = (props) => {
         ) : (
           <p>No file selected</p>
         )}
-        <button className={`reopen-chat-btn ${isChatOpen ? "hidden" : ""}`} onClick={() => setIsChatOpen(true)}>
+        <button className={`reopen-chat-btn ${isChatOpen ? "hidden" : "visible"}`} onClick={() => setIsChatOpen(true)}>
           Reopen Chat
         </button>
       </div>
-      <ChatSidebar
-        isOpen={isChatOpen}
-        onClose={() => setIsChatOpen(false)}
-        onSend={handleSendMessage}
-        options={["Handle NA", "Remove Duplicates", "Show Info About Columns", "Exit"]}
-        messages={messages}
-        awaitingTypeChange={awaitingTypeChange}
-        awaitingColumnInput={awaitingColumnInput} // Pass new prop
-      />
+      {isChatOpen && (
+        <ChatSidebar
+          isOpen={isChatOpen}
+          onClose={() => setIsChatOpen(false)}
+          onSend={handleSendMessage}
+          options={["Handle NA", "Remove Duplicates", "Show Info About Columns", "Exit"]}
+          messages={messages}
+          awaitingColumnInput={awaitingColumnInput}
+          awaitingTypeChange={awaitingTypeChange}
+        />
+      )}
     </div>
   );
 };
