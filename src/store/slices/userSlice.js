@@ -4,7 +4,7 @@ const userSlice = createSlice({
   name: "user",
   initialState: {
     files: [],
-    userInfo: null, // New state property to store user information
+    userInfo: null,
   },
   reducers: {
     addFile: (state, action) => {
@@ -16,6 +16,14 @@ const userSlice = createSlice({
     removeFile: (state, action) => {
       state.files.splice(action.payload, 1);
     },
+    updateFile: (state, action) => {
+      const fileIndex = state.files.findIndex(
+        (file) => file.name === action.payload.name
+      );
+      if (fileIndex !== -1) {
+        state.files[fileIndex].content = action.payload.content;
+      }
+    },
     setUser: (state, action) => {
       state.userInfo = {
         email: action.payload.email,
@@ -23,10 +31,10 @@ const userSlice = createSlice({
       };
     },
     logoutUser: (state) => {
-      state.userInfo = null; // Clear user info on logout
-    }
+      state.userInfo = null;
+    },
   },
 });
 
-export const { addFile, removeFile, setUser, logoutUser } = userSlice.actions;
+export const { addFile, removeFile, updateFile, setUser, logoutUser } = userSlice.actions;
 export default userSlice.reducer;

@@ -48,8 +48,8 @@ const AnalysisModule = () => {
   const [aggregateResults, setAggregateResults] = useState([]);
   const [selectedFunction, setSelectedFunction] = useState("");
 
-  const aggregateResultsRef=useRef(null);
-  const analysisRef = useRef();  
+  const aggregateResultsRef = useRef(null);
+  const analysisRef = useRef();
 
   const backBtn = () => {
     window.history.back();
@@ -194,6 +194,10 @@ const AnalysisModule = () => {
     aggregateResultsRef.current.scrollIntoView({ behavior: "smooth" });
   };
 
+  const handleDropdownChange = (event) => {
+    calculateAggregate(event.target.value);
+  };
+
   const downloadPDF = () => {
     const input = analysisRef.current;
     html2canvas(input).then((canvas) => {
@@ -237,24 +241,17 @@ const AnalysisModule = () => {
             <div className="aggregate-functions-container">
               <h1>Aggregate Functions</h1>
               <div>
-                <button
-                  type="button"
-                  onClick={() => calculateAggregate("average")}
+                <select
+                  value={selectedFunction}
+                  onChange={handleDropdownChange}
                 >
-                  Display Average
-                </button>
-                <button type="button" onClick={() => calculateAggregate("count")}>
-                  Display Count
-                </button>
-                <button type="button" onClick={() => calculateAggregate("sum")}>
-                  Display Sum
-                </button>
-                <button type="button" onClick={() => calculateAggregate("min")}>
-                  Display Min
-                </button>
-                <button type="button" onClick={() => calculateAggregate("max")}>
-                  Display Max
-                </button>
+                  <option value="">Select Aggregate Function</option>
+                  <option value="average">Display Average</option>
+                  <option value="count">Display Count</option>
+                  <option value="sum">Display Sum</option>
+                  <option value="min">Display Min</option>
+                  <option value="max">Display Max</option>
+                </select>
               </div>
             </div>
             {Array.isArray(file.content) ? (
@@ -297,22 +294,10 @@ const AnalysisModule = () => {
                       icon={<FaChartArea />}
                       label="Area"
                     />
-                    <ChartIcon
-                      type="scatter"
-                      icon={<LuScatterChart />}
-                      label="Scatter"
-                    />
                     <ChartIcon type="pie" icon={<FaChartPie />} label="Pie" />
-                    <ChartIcon
-                      type="donut"
-                      icon={<RiDonutChartFill />}
-                      label="Donut"
-                    />
-                    <ChartIcon
-                      type="treemap"
-                      icon={<TbChartTreemap />}
-                      label="Treemap"
-                    />
+                    <ChartIcon type="scatter" icon={<LuScatterChart />} label="Scatter" />
+                    <ChartIcon type="donut" icon={<RiDonutChartFill />} label="Donut" />
+                    <ChartIcon type="treemap" icon={<TbChartTreemap />} label="Treemap" />
                     <ChartIcon
                       type="filter"
                       icon={<FaFilter />}
@@ -345,32 +330,38 @@ const AnalysisModule = () => {
                     </tbody>
                   </table>
                 </div>
-                <div className="aggregate-results-container" ref={aggregateResultsRef}>
-                  <h2>Aggregate Results: {selectedFunction}</h2>
-                  <table className="aggregate-results-table">
-                    <thead>
-                      <tr>
-                        <th>Column Name</th>
-                        <th>Result</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {aggregateResults.map((result, index) => (
-                        <tr key={index}>
-                          <td>{result.columnName}</td>
-                          <td>{result.result}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                <div className="lower-section" ref={aggregateResultsRef}>
+                  <div>
+                    {aggregateResults.length > 0 && (
+                      <div className="aggregate-results-container">
+                        <h2>Aggregate Results:</h2>
+                        <table className="aggregate-results-table">
+                          <thead>
+                            <tr>
+                              <th>Column</th>
+                              <th>Result</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {aggregateResults.map((result, index) => (
+                              <tr key={index}>
+                                <td>{result.columnName}</td>
+                                <td>{result.result}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
             ) : (
-              <p>The file content is not in the expected format.</p>
+              <p>No file selected</p>
             )}
           </div>
         ) : (
-          <p>No file selected or file is empty.</p>
+          <p>No file selected</p>
         )}
       </div>
     </>
