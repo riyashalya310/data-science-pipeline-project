@@ -47,6 +47,7 @@ const AnalysisModule = () => {
   const [charts, setCharts] = useState([]);
   const [aggregateResults, setAggregateResults] = useState([]);
   const [selectedFunction, setSelectedFunction] = useState("");
+  const [isTableVisible, setIsTableVisible] = useState(true); // State for table visibility
 
   const aggregateResultsRef = useRef(null);
   const analysisRef = useRef();
@@ -93,11 +94,15 @@ const AnalysisModule = () => {
       ],
     };
 
+    const chartOptions = {
+      maintainAspectRatio: false, // Allow chart resizing
+    };
+
     switch (chart.type) {
       case "bar":
-        return <Bar data={chartData} />;
+        return <Bar data={chartData} options={chartOptions} />;
       case "line":
-        return <Line data={chartData} />;
+        return <Line data={chartData} options={chartOptions} />;
       case "pie":
         return (
           <Pie
@@ -120,9 +125,9 @@ const AnalysisModule = () => {
           />
         );
       case "scatter":
-        return <Scatter data={chartData} />;
+        return <Scatter data={chartData} options={chartOptions} />;
       case "area":
-        return <Line data={chartData} options={{ elements: { line: { tension: 0.4 } } }} />;
+        return <Line data={chartData} options={{ elements: { line: { tension: 0.4 } }, ...chartOptions }} />;
       case "donut":
         return (
           <Pie
@@ -143,6 +148,7 @@ const AnalysisModule = () => {
               },
               circumference: Math.PI,
               rotation: -Math.PI,
+              ...chartOptions
             }}
           />
         );
@@ -211,6 +217,10 @@ const AnalysisModule = () => {
     });
   };
 
+  const toggleTableVisibility = () => {
+    setIsTableVisible(!isTableVisible);
+  };
+
   return (
     <>
       <div className="file-display-analysis" ref={analysisRef}>
@@ -256,8 +266,15 @@ const AnalysisModule = () => {
             </div>
             {Array.isArray(file.content) ? (
               <div className="file-analysis-main-content">
-                <div className="upper-section">
-                  <div className="dropzone-container">
+                <div className="row-container">
+                  {/* DropZone and Chart Icons */}
+                  <div
+                    className="dropzone-container"
+                    style={{
+                      width: isTableVisible ? "75%" : "100%",
+                      transition: "width 0.3s ease-in-out", // Smooth transition
+                    }}
+                  >
                     <DropZone
                       onDrop={handleDrop}
                       onDropColumn={handleDropColumn}
@@ -265,11 +282,13 @@ const AnalysisModule = () => {
                       {charts.map((chart, index) => (
                         <div
                           key={index}
+                          className="chart-container"
                           style={{
-                            padding: "10px",
+                            padding: "5px",
                             border: "1px solid #ddd",
                             marginBottom: "10px",
                             background: "#f9f9f9",
+                            height: isTableVisible ? "250px" : "400px", // Adjust chart height based on table visibility
                           }}
                         >
                           {renderChart(chart)}
@@ -309,27 +328,44 @@ const AnalysisModule = () => {
                       label="Table"
                     />
                   </div>
+
+                  {/* Table */}
+                  {isTableVisible && (
+                    <div className="table-container">
+                      <button className="toggle-btn" onClick={toggleTableVisibility}>
+                        Hide Table
+                      </button>
+                      <div className="scrollable-table">
+                        <table className="file-table-analysis">
+                          <thead>
+                            <tr>
+                              {Object.keys(file.content[0]).map((key) => (
+                                <TableColumn key={key} columnName={key} />
+                              ))}
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {file.content.map((row, index) => (
+                              <tr key={index}>
+                                {Object.values(row).map((value, i) => (
+                                  <td key={i}>{value}</td>
+                                ))}
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  )}
+
+                  {!isTableVisible && (
+                    <button className="toggle-btn" onClick={toggleTableVisibility} style={{height: "80px"}}>
+                      Show Table
+                    </button>
+                  )}
                 </div>
-                <div className="table-container">
-                  <table className="file-table-analysis">
-                    <thead>
-                      <tr>
-                        {Object.keys(file.content[0]).map((key) => (
-                          <TableColumn key={key} columnName={key} />
-                        ))}
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {file.content.map((row, index) => (
-                        <tr key={index}>
-                          {Object.values(row).map((value, i) => (
-                            <td key={i}>{value}</td>
-                          ))}
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
+
+                {/* Aggregate Results */}
                 <div className="lower-section" ref={aggregateResultsRef}>
                   <div>
                     {aggregateResults.length > 0 && (

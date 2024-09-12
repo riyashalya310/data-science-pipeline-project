@@ -17,11 +17,11 @@ const userSlice = createSlice({
       state.files.splice(action.payload, 1);
     },
     updateFile: (state, action) => {
-      const fileIndex = state.files.findIndex(
-        (file) => file.name === action.payload.name
-      );
+      console.log("updateFile payload:", action.payload);
+      const { name, content } = action.payload;
+      const fileIndex = state.files.findIndex(file => file.name === name);
       if (fileIndex !== -1) {
-        state.files[fileIndex].content = action.payload.content;
+        state.files[fileIndex].content = content;
       }
     },
     setUser: (state, action) => {

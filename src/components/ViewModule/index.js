@@ -5,8 +5,11 @@ import { IoMdArrowBack } from "react-icons/io";
 import "./index.css"; // Import your CSS file here
 
 const ViewModule = (props) => {
+  // Access files from the user slice
   const files = useSelector((state) => state.user.files);
-  const file = files.find((f) => f.name === "birthplace-2018-census-csv.csv"); // Replace with your logic
+  console.log("Files from Redux store:", files); // Debugging line
+
+  const file = files.find((f) => f.name === "birthplace-2018-census-csv.csv"); // Adjust the file name as needed
 
   const moveToAnalysisBtn = () => {
     const { history } = props;
