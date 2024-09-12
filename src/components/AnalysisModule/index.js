@@ -239,7 +239,7 @@ const AnalysisModule = () => {
                 type="button"
                 className="btn btn-secondary"
                 onClick={downloadPDF}
-                style={{ marginLeft: '10px' }}
+                style={{ marginLeft: '10px' ,backgroundColor: "#ea70e0"}}
               >
                 Download PDF
               </button>

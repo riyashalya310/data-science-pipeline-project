@@ -49,12 +49,13 @@
   display: flex;
   flex-wrap: wrap;
   justify-content: space-between;
-  margin-left: 20px;
+  margin-left: 10px;
 }
 
 .chart-icons-container > div {
   flex: 1 1 calc(50% - 10px);
-  margin: 5px;
+  width: 150px;
+  height: 100px;
 }
 
 .table-container {
