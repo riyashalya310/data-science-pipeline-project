@@ -1,58 +1,122 @@
 /* index.css */
 .etl-module-container {
-    display: flex;
-    position: relative;
-  }
-  
-  .etl-content.with-chat-open {
-    width: 50%;
-    transition: width 0.3s ease;
-  }
-  
-  .etl-content.with-chat-closed {
-    width: 100%;
-    transition: width 0.3s ease;
-  }
-  
-  .reopen-chat-btn {
-    position: fixed;
-    bottom: 20px;
-    right: 20px;
-    background: #007bff;
-    color: #fff;
-    border: none;
-    padding: 10px 20px;
-    border-radius: 4px;
-    cursor: pointer;
-  }
-  
-  .reopen-chat-btn.hidden {
-    display: none;
-  }
-  
-  .etl-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-  }
-  
-  .file-content-heading {
-    flex: 1;
-    text-align: center;
-  }
-  
-  .btn {
-    margin-right: 10px;
-  }
-  
-  .file-table {
-    width: 100%;
-    border-collapse: collapse;
-  }
-  
-  .file-table th,
-  .file-table td {
-    border: 1px solid #ddd;
-    padding: 8px;
-  }
-  
+  display: flex;
+  position: relative;
+  padding: 20px;
+  box-sizing: border-box;
+}
+
+.etl-content.with-chat-open {
+  width: 70%;
+  transition: width 0.3s ease;
+}
+
+.etl-content.with-chat-closed {
+  width: 100%;
+  transition: width 0.3s ease;
+}
+
+.reopen-chat-btn {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  background: #007bff;
+  color: #fff;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.reopen-chat-btn.hidden {
+  display: none;
+}
+
+.etl-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+
+.file-content-heading {
+  flex: 1;
+  text-align: center;
+  font-size: 18px;
+  font-weight: bold;
+}
+
+.file-table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed; /* Ensures equal width for all columns */
+  margin-bottom: 20px;
+}
+
+.file-table th,
+.file-table td {
+  border: 1px solid #ddd;
+  padding: 8px;
+  text-align: left;
+  word-wrap: break-word; /* Allows content to wrap within each cell */
+}
+
+.file-table th {
+  background-color: #27d959; /* Slightly different background for headers */
+  font-weight: bold;
+  text-align: center;
+}
+
+.file-table th,
+.file-table td {
+  width: auto; /* Ensures all columns have equal width */
+}
+
+.draggable-row:hover {
+  background-color: #6954e3; /* Slight hover effect for better user interaction */
+}
+
+.draggable-row {
+  cursor: move;
+}
+
+.draggable-row td {
+  padding: 10px;
+}
+
+/* Visual cues when dragging */
+.react-beautiful-dnd-dragging {
+  background-color: #37bdcf;
+  color: #007bff;
+  border: 2px dashed #007bff;
+}
+
+.react-beautiful-dnd-dragging td {
+  background-color: inherit;
+}
+
+/* Adjusting the padding to make everything evenly spaced */
+.file-table th,
+.file-table td {
+  padding: 12px 15px; /* Adding a bit more padding for better spacing */
+}
+
+.etl-content {
+  overflow-x: auto;
+}
+
+/* Button styles */
+.btn {
+  padding: 8px 12px;
+  border: none;
+  background-color: #007bff;
+  color: white;
+  font-size: 14px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+.btn:hover {
+  background-color: #0056b3;
+}

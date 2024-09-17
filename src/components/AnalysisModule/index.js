@@ -6,7 +6,6 @@ import { FaTableCells } from "react-icons/fa6";
 import { AiOutlineLineChart } from "react-icons/ai";
 import { LuScatterChart } from "react-icons/lu";
 import { RiDonutChartFill } from "react-icons/ri";
-import { TbChartTreemap } from "react-icons/tb";
 import { IoMdArrowBack } from "react-icons/io";
 import {
   Chart as ChartJS,
@@ -23,12 +22,14 @@ import {
 import { Bar, Line, Pie, Scatter } from "react-chartjs-2";
 import ChartIcon from "../ChartIcon";
 import DropZone from "../DropZone";
+import SelectColumnsPopup from "../ColumnSelectionPopup";
+import TableCreationPopup from "../TableCreationPopup"; // Newly added
 import TableColumn from "../TableColumn";
-import html2canvas from 'html2canvas';
-import jsPDF from 'jspdf';
+import html2canvas from "html2canvas";
+import jsPDF from "jspdf";
 import "./index.css";
 
-// Register the required components
+// Register the required components for Chart.js
 ChartJS.register(
   CategoryScale,
   LinearScale,
@@ -43,11 +44,16 @@ ChartJS.register(
 
 const AnalysisModule = () => {
   const files = useSelector((state) => state.user.files);
-  const file = files.find((f) => f.name === "birthplace-2018-census-csv.csv"); 
+  const file = files.find((f) => f.name === "birthplace-2018-census-csv.csv");
   const [charts, setCharts] = useState([]);
   const [aggregateResults, setAggregateResults] = useState([]);
   const [selectedFunction, setSelectedFunction] = useState("");
-  const [isTableVisible, setIsTableVisible] = useState(true); // State for table visibility
+  const [isTableVisible, setIsTableVisible] = useState(true);
+  const [isPopupVisible, setIsPopupVisible] = useState(false);
+  const [isTableCreationPopupVisible, setIsTableCreationPopupVisible] = useState(false); // New state for popup
+  const [selectedColumns, setSelectedColumns] = useState([]);
+  const [newTableData, setNewTableData] = useState([]); // New state for table data
+  const [mergedTableData, setMergedTableData] = useState(file?.content || []); // State for the merged table
 
   const aggregateResultsRef = useRef(null);
   const analysisRef = useRef();
@@ -59,8 +65,16 @@ const AnalysisModule = () => {
   const handleDrop = (item) => {
     setCharts((prevCharts) => [
       ...prevCharts,
-      { ...item, data: null, columnName: "" },
+      { ...item, data: null, columnName: "", visible: true },
     ]);
+  };
+
+  const toggleChartVisibility = (index) => {
+    setCharts((prevCharts) =>
+      prevCharts.map((chart, i) =>
+        i === index ? { ...chart, visible: !chart.visible } : chart
+      )
+    );
   };
 
   const handleDropColumn = (column) => {
@@ -77,7 +91,7 @@ const AnalysisModule = () => {
     );
   };
 
-  const renderChart = (chart) => {
+  const renderChart = (chart, index) => {
     if (!chart.data) return <p>Drop a column here to display the chart</p>;
 
     const chartData = {
@@ -110,7 +124,7 @@ const AnalysisModule = () => {
             options={{
               plugins: {
                 legend: {
-                  position: 'top',
+                  position: "top",
                 },
                 tooltip: {
                   callbacks: {
@@ -127,7 +141,12 @@ const AnalysisModule = () => {
       case "scatter":
         return <Scatter data={chartData} options={chartOptions} />;
       case "area":
-        return <Line data={chartData} options={{ elements: { line: { tension: 0.4 } }, ...chartOptions }} />;
+        return (
+          <Line
+            data={chartData}
+            options={{ elements: { line: { tension: 0.4 } }, ...chartOptions }}
+          />
+        );
       case "donut":
         return (
           <Pie
@@ -135,7 +154,7 @@ const AnalysisModule = () => {
             options={{
               plugins: {
                 legend: {
-                  position: 'top',
+                  position: "top",
                 },
                 tooltip: {
                   callbacks: {
@@ -148,28 +167,39 @@ const AnalysisModule = () => {
               },
               circumference: Math.PI,
               rotation: -Math.PI,
-              ...chartOptions
+              ...chartOptions,
             }}
           />
         );
-      case "treemap":
-        return <p>Treemap chart is not supported with Chart.js. Consider using another library for treemaps.</p>;
       default:
         return <p>No chart type selected</p>;
     }
   };
 
-  const calculateAggregate = (func) => {
-    if (!file || !file.content || !file.content.length) return;
+  const handlePopupSubmit = (columns) => {
+    setSelectedColumns(columns);
+    calculateAggregate(selectedFunction, columns); // Pass the selected columns to the aggregation function
+  };
 
-    const numericalColumns = Object.keys(file.content[0]).filter((key) =>
-      !isNaN(parseFloat(file.content[0][key]))
-    );
+  const handlePopupClose = () => {
+    setIsPopupVisible(false);
+  };
 
-    const results = numericalColumns.map((columnName) => {
-      const values = file.content.map((row) =>
-        parseFloat(row[columnName])
-      );
+  const calculateAggregate = (func, columns) => {
+    if (!file || !file.content || !file.content.length) {
+      console.error("File or file content is undefined or empty");
+      return;
+    }
+
+    if (!Array.isArray(columns) || columns.length === 0) {
+      console.error("No columns selected");
+      return;
+    }
+
+    const results = columns.map((columnName) => {
+      const values = file.content
+        .map((row) => parseFloat(row[columnName]))
+        .filter((v) => !isNaN(v));
 
       let result;
       switch (func) {
@@ -180,7 +210,8 @@ const AnalysisModule = () => {
           result = values.length;
           break;
         case "average":
-          result = values.reduce((acc, value) => acc + value, 0) / values.length;
+          result =
+            values.reduce((acc, value) => acc + value, 0) / values.length;
           break;
         case "min":
           result = Math.min(...values);
@@ -197,11 +228,20 @@ const AnalysisModule = () => {
 
     setAggregateResults(results);
     setSelectedFunction(func);
-    aggregateResultsRef.current.scrollIntoView({ behavior: "smooth" });
+
+    if (aggregateResultsRef.current) {
+      aggregateResultsRef.current.scrollIntoView({ behavior: "smooth" });
+    } else {
+      console.error("aggregateResultsRef.current is null");
+    }
   };
 
   const handleDropdownChange = (event) => {
-    calculateAggregate(event.target.value);
+    const selectedFunc = event.target.value;
+    if (selectedFunc) {
+      setSelectedFunction(selectedFunc);
+      setIsPopupVisible(true); // Show the popup when an aggregate function is selected
+    }
   };
 
   const downloadPDF = () => {
@@ -219,6 +259,30 @@ const AnalysisModule = () => {
 
   const toggleTableVisibility = () => {
     setIsTableVisible(!isTableVisible);
+  };
+
+  // New Table Creation Handlers
+  const handleTableCreation = (rows, columns) => {
+    const initialTableData = Array.from({ length: rows }, () =>
+      Array(columns).fill("")
+    );
+    setNewTableData(initialTableData);
+    setIsTableCreationPopupVisible(false);
+  };
+
+  const handleTableDataChange = (rowIndex, columnIndex, value) => {
+    setNewTableData((prevData) => {
+      const updatedData = [...prevData];
+      updatedData[rowIndex][columnIndex] = value;
+      return updatedData;
+    });
+  };
+
+  const handleTableSubmit = () => {
+    // Append new table data to the existing merged table
+    const updatedMergedTableData = [...mergedTableData, ...newTableData];
+    setMergedTableData(updatedMergedTableData);
+    setNewTableData([]); // Clear new table data
   };
 
   return (
@@ -239,7 +303,7 @@ const AnalysisModule = () => {
                 type="button"
                 className="btn btn-secondary"
                 onClick={downloadPDF}
-                style={{ marginLeft: '10px' ,backgroundColor: "#ea70e0"}}
+                style={{ marginLeft: "10px", backgroundColor: "#ea70e0" }}
               >
                 Download PDF
               </button>
@@ -272,7 +336,7 @@ const AnalysisModule = () => {
                     className="dropzone-container"
                     style={{
                       width: isTableVisible ? "75%" : "100%",
-                      transition: "width 0.3s ease-in-out", // Smooth transition
+                      transition: "width 0.3s ease-in-out",
                     }}
                   >
                     <DropZone
@@ -284,18 +348,50 @@ const AnalysisModule = () => {
                           key={index}
                           className="chart-container"
                           style={{
-                            padding: "5px",
-                            border: "1px solid #ddd",
-                            marginBottom: "10px",
+                            marginBottom: chart.visible ? "10px" : "0px",
+                            padding: chart.visible ? "5px" : "0px",
+                            border: chart.visible ? "1px solid #ddd" : "none",
                             background: "#f9f9f9",
-                            height: isTableVisible ? "250px" : "400px", // Adjust chart height based on table visibility
+                            height: chart.visible
+                              ? isTableVisible
+                                ? "250px"
+                                : "400px"
+                              : "auto", // Adjust chart height based on visibility
                           }}
                         >
-                          {renderChart(chart)}
+                          {chart.visible ? (
+                            <>
+                              <button
+                                className="toggle-btn-chart"
+                                onClick={() => toggleChartVisibility(index)}
+                                style={{
+                                  position: "absolute",
+                                  top: "10px",
+                                  right: "10px",
+                                }}
+                              >
+                                Hide
+                              </button>
+                              {renderChart(chart, index)}
+                            </>
+                          ) : (
+                            <button
+                              className="toggle-btn-chart"
+                              onClick={() => toggleChartVisibility(index)}
+                              style={{
+                                width: "100px",
+                                height: "30px",
+                                margin: "auto",
+                              }}
+                            >
+                              Show
+                            </button>
+                          )}
                         </div>
                       ))}
                     </DropZone>
                   </div>
+
                   <div className="chart-icons-container">
                     <ChartIcon
                       type="bar"
@@ -314,9 +410,16 @@ const AnalysisModule = () => {
                       label="Area"
                     />
                     <ChartIcon type="pie" icon={<FaChartPie />} label="Pie" />
-                    <ChartIcon type="scatter" icon={<LuScatterChart />} label="Scatter" />
-                    <ChartIcon type="donut" icon={<RiDonutChartFill />} label="Donut" />
-                    <ChartIcon type="treemap" icon={<TbChartTreemap />} label="Treemap" />
+                    <ChartIcon
+                      type="scatter"
+                      icon={<LuScatterChart />}
+                      label="Scatter"
+                    />
+                    <ChartIcon
+                      type="donut"
+                      icon={<RiDonutChartFill />}
+                      label="Donut"
+                    />
                     <ChartIcon
                       type="filter"
                       icon={<FaFilter />}
@@ -326,13 +429,17 @@ const AnalysisModule = () => {
                       type="table"
                       icon={<FaTableCells />}
                       label="Table"
+                      onClick={() => setIsTableCreationPopupVisible(true)} // Open table creation popup
                     />
                   </div>
 
-                  {/* Table */}
+                  {/* Original Table */}
                   {isTableVisible && (
                     <div className="table-container">
-                      <button className="toggle-btn" onClick={toggleTableVisibility}>
+                      <button
+                        className="toggle-btn"
+                        onClick={toggleTableVisibility}
+                      >
                         Hide Table
                       </button>
                       <div className="scrollable-table">
@@ -345,7 +452,7 @@ const AnalysisModule = () => {
                             </tr>
                           </thead>
                           <tbody>
-                            {file.content.map((row, index) => (
+                            {mergedTableData.map((row, index) => (
                               <tr key={index}>
                                 {Object.values(row).map((value, i) => (
                                   <td key={i}>{value}</td>
@@ -359,11 +466,69 @@ const AnalysisModule = () => {
                   )}
 
                   {!isTableVisible && (
-                    <button className="toggle-btn" onClick={toggleTableVisibility} style={{height: "80px"}}>
+                    <button
+                      className="toggle-btn"
+                      onClick={toggleTableVisibility}
+                      style={{ height: "80px" }}
+                    >
                       Show Table
                     </button>
                   )}
                 </div>
+
+                {/* Aggregate Results */}
+                {isPopupVisible && (
+                  <SelectColumnsPopup
+                    columns={Object.keys(file.content[0])} // Pass the column names to the popup
+                    onSubmit={handlePopupSubmit}
+                    onClose={handlePopupClose}
+                  />
+                )}
+
+                {/* Table Creation Popup */}
+                {isTableCreationPopupVisible && (
+                  <TableCreationPopup
+                    onSubmit={handleTableCreation}
+                    onClose={() => setIsTableCreationPopupVisible(false)}
+                  />
+                )}
+
+                {/* New Editable Table */}
+                {newTableData.length > 0 && (
+                  <div className="new-table-container">
+                    <table>
+                      <thead>
+                        <tr>
+                          {newTableData[0].map((_, colIndex) => (
+                            <th key={colIndex}>Column {colIndex + 1}</th>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {newTableData.map((row, rowIndex) => (
+                          <tr key={rowIndex}>
+                            {row.map((cell, colIndex) => (
+                              <td key={colIndex}>
+                                <input
+                                  type="text"
+                                  value={cell}
+                                  onChange={(e) =>
+                                    handleTableDataChange(
+                                      rowIndex,
+                                      colIndex,
+                                      e.target.value
+                                    )
+                                  }
+                                />
+                              </td>
+                            ))}
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                    <button onClick={handleTableSubmit}>Submit Table</button>
+                  </div>
+                )}
 
                 {/* Aggregate Results */}
                 <div className="lower-section" ref={aggregateResultsRef}>

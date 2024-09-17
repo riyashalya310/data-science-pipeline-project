@@ -138,3 +138,25 @@
 .aggregate-results-table tr:hover {
   background-color: #ddd;
 }
+
+.chart-container {
+  position: relative; /* Ensure toggle button is positioned correctly */
+  background: #f9f9f9;
+  border: 1px solid #ddd;
+  margin-bottom: 10px; /* Ensure there's space between charts */
+}
+
+.chart-container.hidden {
+  display: none; /* Hide chart when the 'hidden' class is added */
+}
+
+.toggle-btn-chart {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  padding: 5px;
+  border: none;
+  background-color: #007bff;
+  color: white;
+  cursor: pointer;
+}
