@@ -80,74 +80,34 @@ const ETLModule = (props) => {
 
     setMessages((prevMessages) => [
       ...prevMessages,
-      { type: "user", text: message },
+      { type: "user", text: message }
     ]);
 
-    if (awaitingOutlierConfirmation) {
-      if (message.toLowerCase() === "yes") {
-        initialMessage = "Removing outliers from the data...";
-        updatedContent = filteredContent.filter((row) => {
-          return !Object.keys(outliers).some((col) =>
-            outliers[col].includes(row[col])
-          );
-        });
-
-        finalMessage = "Outliers removed.";
-
-        setFilteredContent(updatedContent);
-        setOutliers({});
-        setAwaitingOutlierConfirmation(false);
-
-        dispatch(updateFile(file.name, updatedContent));
-
-        setMessages((prevMessages) => [
-          ...prevMessages,
-          { type: "bot", text: initialMessage },
-          { type: "bot", text: finalMessage },
-          {
-            type: "bot",
-            text: "Please select an option from the dropdown below.",
-          },
-        ]);
-      } else if (message.toLowerCase() === "no") {
-        setAwaitingOutlierConfirmation(false);
-        setMessages((prevMessages) => [
-          ...prevMessages,
-          { type: "bot", text: "Outliers not removed." },
-          {
-            type: "bot",
-            text: "Please select an option from the dropdown below.",
-          },
-        ]);
-      } else {
-        setMessages((prevMessages) => [
-          ...prevMessages,
-          { type: "bot", text: "Invalid input. Please type 'yes' or 'no'." },
-        ]);
-      }
-      return;
-    }
-
     if (awaitingColumnInput) {
+      if (message.toLowerCase() === "no") {
+        setAwaitingColumnInput(false);
+        setMessages((prevMessages) => [
+          ...prevMessages,
+          { type: "bot", text: "No changes made." },
+          { type: "bot", text: "Please select an option from the dropdown below." }
+        ]);
+        return;
+      }
+
+      // Handling column scaling if awaiting for column names
       if (scalingColumns) {
-        const selectedColumns = message.split(",").map((name) => name.trim());
-        const columnsToScale = selectedColumns.filter((name) =>
-          numericalColumns.includes(name)
-        );
+        const selectedColumns = message.split(",").map(name => name.trim());
+        const columnsToScale = selectedColumns.filter(name => numericalColumns.includes(name));
 
         if (columnsToScale.length > 0) {
           initialMessage = "Scaling selected columns...";
-          const scaledContent = filteredContent.map((row) => {
+          const scaledContent = filteredContent.map(row => {
             const newRow = { ...row };
-            columnsToScale.forEach((col) => {
-              const values = filteredContent
-                .map((r) => r[col])
-                .filter((v) => typeof v === "number");
+            columnsToScale.forEach(col => {
+              const values = filteredContent.map(r => r[col]).filter(v => typeof v === 'number');
               const colMean = mean(values);
               const colStdDev = stdDev(values);
-              newRow[col] = zScoreScale(row[col], colMean, colStdDev).toFixed(
-                2
-              );
+              newRow[col] = zScoreScale(row[col], colMean, colStdDev).toFixed(2);
             });
             return newRow;
           });
@@ -164,244 +124,226 @@ const ETLModule = (props) => {
             ...prevMessages,
             { type: "bot", text: initialMessage },
             { type: "bot", text: finalMessage },
-            {
-              type: "bot",
-              text: "Please select an option from the dropdown below.",
-            },
+            { type: "bot", text: "Please select an option from the dropdown below." }
           ]);
         } else {
           finalMessage = "Invalid column names. No columns scaled.";
           setMessages((prevMessages) => [
             ...prevMessages,
-            { type: "bot", text: finalMessage },
+            { type: "bot", text: finalMessage }
           ]);
         }
-      } else {
-        const [columnName, dtype] = message
-          .split(":")
-          .map((item) => item.trim());
+        return;
+      }
 
-        if (columnName && dtype) {
-          initialMessage = `Changing the data type of column '${columnName}' to '${dtype}'...`;
+      // Handling other types of column input
+      const [columnName, dtype] = message.split(":").map(item => item.trim());
 
-          updatedContent = filteredContent.map((row) => {
-            const newRow = { ...row };
-            if (columnName in newRow) {
-              if (dtype === "string") {
-                newRow[columnName] = String(newRow[columnName]);
-              } else if (dtype === "number") {
-                newRow[columnName] = Number(newRow[columnName]);
-              } else if (dtype === "boolean") {
-                newRow[columnName] = Boolean(newRow[columnName]);
-              }
+      if (columnName && dtype) {
+        initialMessage = `Changing the data type of column '${columnName}' to '${dtype}'...`;
+
+        updatedContent = filteredContent.map(row => {
+          const newRow = { ...row };
+          if (columnName in newRow) {
+            if (dtype === "string") {
+              newRow[columnName] = String(newRow[columnName]);
+            } else if (dtype === "number") {
+              newRow[columnName] = Number(newRow[columnName]);
+            } else if (dtype === "boolean") {
+              newRow[columnName] = Boolean(newRow[columnName]);
             }
-            return newRow;
-          });
+          }
+          return newRow;
+        });
 
-          finalMessage = `Data type of column '${columnName}' changed to '${dtype}'.`;
+        finalMessage = `Data type of column '${columnName}' changed to '${dtype}'.`;
 
-          setFilteredContent(updatedContent);
-          setAwaitingColumnInput(false);
+        setFilteredContent(updatedContent);
+        setAwaitingColumnInput(false);
 
-          dispatch(updateFile(file.name, updatedContent));
-        } else {
-          finalMessage =
-            "Invalid format. Please write it as - {column name} : {dtype}.";
+        dispatch(updateFile(file.name, updatedContent));
+      } else {
+        finalMessage = "Invalid format. Please write it as - {column name} : {dtype:}.";
+      }
+
+      setMessages((prevMessages) => [
+        ...prevMessages,
+        { type: "bot", text: initialMessage },
+        { type: "bot", text: finalMessage },
+        { type: "bot", text: "Please select an option from the dropdown below." }
+      ]);
+    } else if (message === "Show Info About Columns") {
+      initialMessage = "Gathering information about columns...";
+      finalMessage = "Here is the information about the columns:";
+
+      const infoMessages = Object.keys(filteredContent[0]).map(key => {
+        const nonNullValues = filteredContent
+          .map(row => row[key])
+          .filter(value => value !== null && value !== "").length;
+        return `Column: ${key}, Non-null Count: ${nonNullValues}, Data Type: ${typeof filteredContent[0][key]}`;
+      });
+
+      setAwaitingColumnInput(true);
+      setAwaitingTypeChange(false);
+
+      setMessages((prevMessages) => [
+        ...prevMessages,
+        { type: "bot", text: initialMessage },
+        { type: "bot", text: finalMessage },
+        ...infoMessages.map(info => ({ type: "bot", text: info })),
+        {
+          type: "bot",
+          text: "If you want to change the data type of any column, write it as - {column name} : {dtype:}, or type 'no' to skip."
         }
+      ]);
+    } else if (message === "Handle NA") {
+      initialMessage = "Handling NA values...";
+
+      updatedContent = updatedContent.filter(row => {
+        const hasNull = Object.values(row).some(value => value === null || value === "");
+        return !hasNull;
+      });
+
+      finalMessage = updatedContent.length < filteredContent.length ? "Great! Null values handled." : "No null values present.";
+
+      setFilteredContent(updatedContent);
+      dispatch(updateFile(file.name, updatedContent));
+
+      setMessages((prevMessages) => [
+        ...prevMessages,
+        { type: "bot", text: initialMessage },
+        { type: "bot", text: finalMessage },
+        { type: "bot", text: "Please select an option from the dropdown below." }
+      ]);
+    } else if (message === "Remove Duplicates") {
+      initialMessage = "Removing duplicate rows...";
+
+      const uniqueContent = new Set();
+      updatedContent = updatedContent.filter(row => {
+        const rowString = JSON.stringify(row);
+        if (uniqueContent.has(rowString)) {
+          return false;
+        } else {
+          uniqueContent.add(rowString);
+          return true;
+        }
+      });
+
+      finalMessage = updatedContent.length < filteredContent.length ? "Great! Duplicates removed." : "No duplicates found.";
+
+      setFilteredContent(updatedContent);
+      dispatch(updateFile(file.name, updatedContent));
+
+      setMessages((prevMessages) => [
+        ...prevMessages,
+        { type: "bot", text: initialMessage },
+        { type: "bot", text: finalMessage },
+        { type: "bot", text: "Please select an option from the dropdown below." }
+      ]);
+    } else if (message === "Remove Outliers") {
+      initialMessage = "Detecting outliers in the data...";
+      const columnsWithOutliers = {};
+
+      columns.forEach(col => {
+        const outliersInColumn = detectOutliers(filteredContent, col);
+        if (outliersInColumn.length > 0) {
+          columnsWithOutliers[col] = outliersInColumn;
+        }
+      });
+
+      if (Object.keys(columnsWithOutliers).length > 0) {
+        const outlierMessages = Object.entries(columnsWithOutliers).map(([col, outliers]) => {
+          return `Column: ${col}, Outliers: ${outliers.join(", ")}`;
+        });
+
+        setOutliers(columnsWithOutliers);
+        setAwaitingOutlierConfirmation(true);
 
         setMessages((prevMessages) => [
           ...prevMessages,
           { type: "bot", text: initialMessage },
-          { type: "bot", text: finalMessage },
-          {
-            type: "bot",
-            text: "Please select an option from the dropdown below.",
-          },
+          ...outlierMessages.map(msg => ({ type: "bot", text: msg })),
+          { type: "bot", text: "Do you want to remove these outliers? Type 'yes' to remove or 'no' to skip." }
+        ]);
+      } else {
+        setMessages((prevMessages) => [
+          ...prevMessages,
+          { type: "bot", text: "No outliers detected in the data." },
+          { type: "bot", text: "Please select an option from the dropdown below." }
         ]);
       }
-      return;
-    }
-
-    switch (message) {
-      case "Show Info About Columns":
-        initialMessage = "Gathering information about columns...";
-        finalMessage = "Here is the information about the columns:";
-
-        const infoMessages = columns.map((key) => {
-          const nonNullValues = filteredContent
-            .map((row) => row[key])
-            .filter((value) => value !== null && value !== "").length;
-          return `Column: ${key}, Non-null Count: ${nonNullValues}, Data Type: ${typeof filteredContent[0][
-            key
-          ]}`;
+    } else if (awaitingOutlierConfirmation) {
+      if (message.toLowerCase() === "yes") {
+        initialMessage = "Removing outliers from the data...";
+        updatedContent = filteredContent.filter(row => {
+          return !Object.keys(outliers).some(col => outliers[col].includes(row[col]));
         });
 
-        setAwaitingColumnInput(true);
-
-        setMessages((prevMessages) => [
-          ...prevMessages,
-          { type: "bot", text: initialMessage },
-          { type: "bot", text: finalMessage },
-          ...infoMessages.map((info) => ({ type: "bot", text: info })),
-          {
-            type: "bot",
-            text: "If you want to change the data type of any column, write it as - {column name} : {dtype}, or type 'no' to skip.",
-          },
-        ]);
-        break;
-
-      case "Handle NA":
-        initialMessage = "Handling NA values...";
-
-        updatedContent = updatedContent.filter((row) => {
-          const hasNull = Object.values(row).some(
-            (value) => value === null || value === ""
-          );
-          return !hasNull;
-        });
-
-        finalMessage =
-          updatedContent.length < filteredContent.length
-            ? "Great! Null values handled."
-            : "No null values present.";
+        finalMessage = "Outliers removed.";
 
         setFilteredContent(updatedContent);
+        setOutliers([]);
+        setAwaitingOutlierConfirmation(false);
+
         dispatch(updateFile(file.name, updatedContent));
 
         setMessages((prevMessages) => [
           ...prevMessages,
           { type: "bot", text: initialMessage },
           { type: "bot", text: finalMessage },
-          {
-            type: "bot",
-            text: "Please select an option from the dropdown below.",
-          },
+          { type: "bot", text: "Please select an option from the dropdown below." }
         ]);
-        break;
+      } else if (message.toLowerCase() === "no") {
+        setAwaitingOutlierConfirmation(false);
+        setMessages((prevMessages) => [
+          ...prevMessages,
+          { type: "bot", text: "Outliers not removed." },
+          { type: "bot", text: "Please select an option from the dropdown below." }
+        ]);
+      } else {
+        setMessages((prevMessages) => [
+          ...prevMessages,
+          { type: "bot", text: "Invalid input. Please type 'yes' or 'no'." }
+        ]);
+      }
+    } else if (message === "Scale Columns") {
+      initialMessage = "Listing numerical columns for scaling...";
+      const numericalCols = columns.filter(col => {
+        return filteredContent.every(row => typeof row[col] === 'number');
+      });
 
-      case "Remove Duplicates":
-        initialMessage = "Removing duplicate rows...";
+      if (numericalCols.length > 0) {
+        setNumericalColumns(numericalCols);
 
-        const uniqueContent = new Set();
-        updatedContent = updatedContent.filter((row) => {
-          const rowString = JSON.stringify(row);
-          if (uniqueContent.has(rowString)) {
-            return false;
-          } else {
-            uniqueContent.add(rowString);
-            return true;
-          }
+        const numericalMessages = numericalCols.map((col, index) => {
+          return `${index + 1}. ${col}`;
         });
-
-        finalMessage =
-          updatedContent.length < filteredContent.length
-            ? "Great! Duplicates removed."
-            : "No duplicates found.";
-
-        setFilteredContent(updatedContent);
-        dispatch(updateFile(file.name, updatedContent));
 
         setMessages((prevMessages) => [
           ...prevMessages,
           { type: "bot", text: initialMessage },
-          { type: "bot", text: finalMessage },
-          {
-            type: "bot",
-            text: "Please select an option from the dropdown below.",
-          },
+          ...numericalMessages.map(msg => ({ type: "bot", text: msg })),
+          { type: "bot", text: "Please enter the names of the columns you want to scale, separated by commas." }
         ]);
-        break;
 
-      case "Remove Outliers":
-        initialMessage = "Detecting outliers in the data...";
-        const columnsWithOutliers = {};
-
-        columns.forEach((col) => {
-          const outliersInColumn = detectOutliers(filteredContent, col);
-          if (outliersInColumn.length > 0) {
-            columnsWithOutliers[col] = outliersInColumn;
-          }
-        });
-
-        if (Object.keys(columnsWithOutliers).length > 0) {
-          const outlierMessages = Object.entries(columnsWithOutliers).map(
-            ([col, outliers]) => {
-              return `Column: ${col}, Outliers: ${outliers.join(", ")}`;
-            }
-          );
-
-          setOutliers(columnsWithOutliers);
-          setAwaitingOutlierConfirmation(true);
-
-          setMessages((prevMessages) => [
-            ...prevMessages,
-            { type: "bot", text: initialMessage },
-            ...outlierMessages.map((text) => ({ type: "bot", text })),
-            {
-              type: "bot",
-              text: "Do you want to remove these outliers? Type 'yes' to remove or 'no' to skip.",
-            },
-          ]);
-        } else {
-          finalMessage = "No outliers detected.";
-          setMessages((prevMessages) => [
-            ...prevMessages,
-            { type: "bot", text: initialMessage },
-            { type: "bot", text: finalMessage },
-            {
-              type: "bot",
-              text: "Please select an option from the dropdown below.",
-            },
-          ]);
-        }
-        break;
-
-      case "Scale Columns":
-        initialMessage = "Scaling columns...";
         setAwaitingColumnInput(true);
         setScalingColumns(true);
-
+      } else {
         setMessages((prevMessages) => [
           ...prevMessages,
-          { type: "bot", text: initialMessage },
-          {
-            type: "bot",
-            text: "Please provide the names of the columns you want to scale, separated by commas.",
-          },
+          { type: "bot", text: "No numerical columns found to scale." },
+          { type: "bot", text: "Please select an option from the dropdown below." }
         ]);
-        break;
-
-      // New case for Exit
-      case "Exit":
-        initialMessage = "Saving the processed data and closing chat...";
-
-        // Store the modified table in Redux
-        dispatch(updateFile(file.name, updatedContent));
-        console.log(updatedContent);
-
-        // Close the chat
-        setIsChatOpen(false);
-
-        finalMessage = "Table updated and chat closed.";
-
-        setMessages((prevMessages) => [
-          ...prevMessages,
-          { type: "bot", text: initialMessage },
-          { type: "bot", text: finalMessage },
-        ]);
-        break;
-
-      default:
-        setMessages((prevMessages) => [
-          ...prevMessages,
-          {
-            type: "bot",
-            text: "I didn't understand that. Please choose an option from the dropdown menu.",
-          },
-        ]);
-        break;
+      }
+    } else {
+      setMessages((prevMessages) => [
+        ...prevMessages,
+        { type: "bot", text: "Invalid option. Please select an option from the dropdown below." }
+      ]);
     }
   };
+
+  
 
   const handleDeleteRow = (indexToDelete) => {
     // Filter out the row that needs to be deleted
