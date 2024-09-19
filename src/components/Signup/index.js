@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import axios from 'axios';
-import './index.css'; // Update the CSS import to the new file
+import './index.css'; // Ensure this path is correct
 
 const Signup = ({ history }) => {
   const [name, setName] = useState('');
@@ -8,9 +8,13 @@ const Signup = ({ history }) => {
   const [password, setPassword] = useState('');
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (event) => {
     event.preventDefault();
+    setLoading(true);
+    setMessage('');
+    setError('');
     try {
       const response = await axios.post('http://localhost:5001/signup', {
         name,
@@ -18,9 +22,10 @@ const Signup = ({ history }) => {
         password
       });
       setMessage(response.data.message);
-      setError('');
     } catch (err) {
       setError('Error signing up');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -37,6 +42,7 @@ const Signup = ({ history }) => {
               value={name}
               onChange={(e) => setName(e.target.value)}
               required
+              disabled={loading}
             />
           </div>
           <div className="form-group">
@@ -47,6 +53,7 @@ const Signup = ({ history }) => {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
+              disabled={loading}
             />
           </div>
           <div className="form-group">
@@ -57,11 +64,14 @@ const Signup = ({ history }) => {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
+              disabled={loading}
             />
           </div>
           {message && <p className="success-message">{message}</p>}
           {error && <p className="error-message">{error}</p>}
-          <button type="submit" className="signup-button">Sign Up</button>
+          <button type="submit" className="signup-button" disabled={loading}>
+            {loading ? "Loading..." : "Sign Up"}
+          </button>
           <p className="switch-link">
             Already have an account? <a href="/login">Login</a>
           </p>

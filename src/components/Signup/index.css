@@ -3,8 +3,10 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  height: 100vh;
+  min-height: 100vh;
   background: linear-gradient(to right, #00c6ff, #0072ff);
+  padding: 0 20px; /* Add some padding to prevent overflow on small screens */
+  box-sizing: border-box; /* Include padding in the height calculation */
 }
 
 /* Centered wrapper with animation */
@@ -14,11 +16,13 @@
   border-radius: 12px;
   box-shadow: 0 8px 30px rgba(0, 0, 0, 0.15);
   animation: slide-in 0.7s ease;
+  width: 100%;
+  max-width: 400px; /* Ensure the wrapper doesn’t get too wide */
+  box-sizing: border-box; /* Include padding in the width calculation */
 }
 
 /* Form styles */
 .signup-form {
-  max-width: 400px;
   width: 100%;
 }
 
@@ -51,6 +55,7 @@
   border: 1px solid #ddd;
   transition: all 0.3s ease;
   font-size: 1rem;
+  box-sizing: border-box; /* Include padding in the width calculation */
 }
 
 .form-group input:focus {
@@ -115,5 +120,16 @@
   to {
     transform: translateY(0);
     opacity: 1;
+  }
+}
+
+/* Responsive adjustments */
+@media (max-width: 480px) {
+  .signup-container {
+    padding: 0 10px; /* Reduce padding for smaller screens */
+  }
+
+  .signup-wrapper {
+    padding: 20px;
   }
 }

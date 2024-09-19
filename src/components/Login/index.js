@@ -3,16 +3,19 @@ import { withRouter } from "react-router-dom";
 import { useDispatch } from "react-redux";
 import { setUser } from "../../store/slices/userSlice";
 import axios from "axios";
-import './index.css'; // Update the CSS import to the new file
+import './index.css'; // Ensure this path is correct
 
 const Login = ({ history }) => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
   const dispatch = useDispatch();
 
   const handleLogin = async (e) => {
     e.preventDefault();
+    setLoading(true);
+    setError("");
     try {
       const response = await axios.post("http://127.0.0.1:5001/login", {
         email,
@@ -34,6 +37,8 @@ const Login = ({ history }) => {
       }
     } catch (err) {
       setError("Invalid email or password");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -50,6 +55,7 @@ const Login = ({ history }) => {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
+              disabled={loading}
             />
           </div>
           <div className="form-group">
@@ -60,10 +66,13 @@ const Login = ({ history }) => {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
+              disabled={loading}
             />
           </div>
           {error && <p className="error-message">{error}</p>}
-          <button type="submit" className="login-button">Login</button>
+          <button type="submit" className="login-button" disabled={loading}>
+            {loading ? "Loading..." : "Login"}
+          </button>
           <p className="switch-link">
             Don't have an account? <a href="/signup">Sign Up</a>
           </p>

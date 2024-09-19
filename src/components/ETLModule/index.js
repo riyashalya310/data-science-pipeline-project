@@ -432,8 +432,6 @@ const ETLModule = (props) => {
   };
   
   
-  
-  
 
   const handleRowDragEnd = (result) => {
     if (!result.destination) return;
