@@ -23,7 +23,6 @@ import { Bar, Line, Pie, Scatter } from "react-chartjs-2";
 import ChartIcon from "../ChartIcon";
 import DropZone from "../DropZone";
 import SelectColumnsPopup from "../ColumnSelectionPopup";
-import TableCreationPopup from "../TableCreationPopup"; // Newly added
 import TableColumn from "../TableColumn";
 import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
@@ -485,50 +484,6 @@ const AnalysisModule = () => {
                   />
                 )}
 
-                {/* Table Creation Popup */}
-                {isTableCreationPopupVisible && (
-                  <TableCreationPopup
-                    onSubmit={handleTableCreation}
-                    onClose={() => setIsTableCreationPopupVisible(false)}
-                  />
-                )}
-
-                {/* New Editable Table */}
-                {newTableData.length > 0 && (
-                  <div className="new-table-container">
-                    <table>
-                      <thead>
-                        <tr>
-                          {newTableData[0].map((_, colIndex) => (
-                            <th key={colIndex}>Column {colIndex + 1}</th>
-                          ))}
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {newTableData.map((row, rowIndex) => (
-                          <tr key={rowIndex}>
-                            {row.map((cell, colIndex) => (
-                              <td key={colIndex}>
-                                <input
-                                  type="text"
-                                  value={cell}
-                                  onChange={(e) =>
-                                    handleTableDataChange(
-                                      rowIndex,
-                                      colIndex,
-                                      e.target.value
-                                    )
-                                  }
-                                />
-                              </td>
-                            ))}
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                    <button onClick={handleTableSubmit}>Submit Table</button>
-                  </div>
-                )}
 
                 {/* Aggregate Results */}
                 <div className="lower-section" ref={aggregateResultsRef}>

@@ -1,4 +1,4 @@
-/* index.css */
+/* ETL Module Container */
 .etl-module-container {
   display: flex;
   position: relative;
@@ -46,10 +46,11 @@
   font-weight: bold;
 }
 
+/* Table Styling */
 .file-table {
   width: 100%;
   border-collapse: collapse;
-  table-layout: fixed; /* Ensures equal width for all columns */
+  table-layout: fixed;
   margin-bottom: 20px;
 }
 
@@ -58,22 +59,18 @@
   border: 1px solid #ddd;
   padding: 8px;
   text-align: left;
-  word-wrap: break-word; /* Allows content to wrap within each cell */
+  word-wrap: break-word;
 }
 
 .file-table th {
-  background-color: #27d959; /* Slightly different background for headers */
+  background-color: #27d959;
   font-weight: bold;
   text-align: center;
 }
 
-.file-table th,
-.file-table td {
-  width: auto; /* Ensures all columns have equal width */
-}
-
+/* Hover Effect for Draggable Rows */
 .draggable-row:hover {
-  background-color: #6954e3; /* Slight hover effect for better user interaction */
+  background-color: #6954e3;
 }
 
 .draggable-row {
@@ -95,17 +92,11 @@
   background-color: inherit;
 }
 
-/* Adjusting the padding to make everything evenly spaced */
-.file-table th,
-.file-table td {
-  padding: 12px 15px; /* Adding a bit more padding for better spacing */
-}
-
 .etl-content {
   overflow-x: auto;
 }
 
-/* Button styles */
+/* Button Styles */
 .btn {
   padding: 8px 12px;
   border: none;
@@ -119,4 +110,73 @@
 
 .btn:hover {
   background-color: #0056b3;
+}
+
+.delete-row-btn {
+  background-color: red;
+  color: white;
+  border: none;
+  padding: 5px 10px;
+  cursor: pointer;
+}
+
+.delete-row-btn:hover {
+  background-color: darkred;
+}
+
+/* Input Cell Styling */
+.file-table td input {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid #ddd;
+  background-color: #f9f9f9;
+  border-radius: 4px;
+  font-size: 14px;
+  color: #333;
+  outline: none;
+  transition: border-color 0.3s ease, background-color 0.3s ease;
+}
+
+/* Focus State for Input */
+.file-table td input:focus {
+  border-color: #007bff;
+  background-color: #fff;
+  box-shadow: 0 0 5px rgba(0, 123, 255, 0.5);
+}
+
+/* Hover Effect for Input */
+.file-table td input:hover {
+  border-color: #0056b3;
+}
+
+/* Disabled Inputs for Read-Only Cells (optional) */
+.file-table td input[disabled] {
+  background-color: #e9ecef;
+  color: #6c757d;
+  cursor: not-allowed;
+}
+
+/* Cell Styling for Input Fields */
+.file-table td {
+  padding: 10px 15px;
+  text-align: left;
+  border: 1px solid #ddd;
+  vertical-align: middle;
+}
+
+/* Table Header Styling */
+.file-table th {
+  color: white;
+  padding: 12px 15px;
+  text-align: center;
+  border: 1px solid #ddd;
+  font-weight: bold;
+}
+
+/* Making Table More Spacious */
+.file-table {
+  border-collapse: collapse;
+  margin-bottom: 20px;
+  width: 100%;
+  table-layout: fixed;
 }

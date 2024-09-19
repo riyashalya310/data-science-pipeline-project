@@ -1,79 +1,119 @@
-/* src/components/Signup.css */
-
+/* Full page background */
 .signup-container {
   display: flex;
-  justify-content: center;
   align-items: center;
-  height: 100vh; /* Full viewport height */
-  background-color: #f4f4f4; /* Optional background color */
+  justify-content: center;
+  height: 100vh;
+  background: linear-gradient(to right, #00c6ff, #0072ff);
 }
 
+/* Centered wrapper with animation */
+.signup-wrapper {
+  background-color: rgba(255, 255, 255, 0.9);
+  padding: 40px;
+  border-radius: 12px;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.15);
+  animation: slide-in 0.7s ease;
+}
+
+/* Form styles */
 .signup-form {
   max-width: 400px;
   width: 100%;
-  padding: 20px;
-  border: 1px solid #ddd;
-  border-radius: 8px;
-  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-  background-color: #fff;
 }
 
-.signup-form h2 {
-  text-align: center;
-  margin-bottom: 20px;
+/* Title styling */
+.signup-title {
+  font-size: 2rem;
   color: #333;
+  text-align: center;
+  margin-bottom: 1.5rem;
 }
 
-.signup-form .form-group {
-  margin-bottom: 16px;
+/* Form group styling */
+.form-group {
+  margin-bottom: 1.25rem;
 }
 
-.signup-form label {
+.form-group label {
   display: block;
   margin-bottom: 8px;
+  font-size: 1rem;
   font-weight: bold;
   color: #555;
 }
 
-.signup-form input {
+/* Input field styling */
+.form-group input {
   width: 100%;
-  padding: 10px;
+  padding: 12px;
+  border-radius: 8px;
   border: 1px solid #ddd;
-  border-radius: 4px;
-  font-size: 16px;
+  transition: all 0.3s ease;
+  font-size: 1rem;
 }
 
-.signup-form button {
+.form-group input:focus {
+  border-color: #0072ff;
+  box-shadow: 0 0 8px rgba(0, 114, 255, 0.3);
+  outline: none;
+}
+
+/* Signup button styling */
+.signup-button {
   width: 100%;
-  padding: 10px;
-  border: none;
-  border-radius: 4px;
-  background-color: #007bff;
+  padding: 12px;
+  border-radius: 50px;
+  background: linear-gradient(to right, #00c6ff, #0072ff);
   color: #fff;
-  font-size: 16px;
+  font-size: 1rem;
+  border: none;
   cursor: pointer;
-  transition: background-color 0.3s ease;
+  transition: background 0.3s ease, transform 0.2s ease;
 }
 
-.signup-form button:hover {
-  background-color: #0056b3;
+.signup-button:hover {
+  background: linear-gradient(to right, #0072ff, #00c6ff);
+  transform: translateY(-3px);
 }
 
-.signup-form p {
-  text-align: center;
-  color: #007bff;
-}
-
+/* Switch link styling */
 .switch-link {
   text-align: center;
-  margin-top: 20px;
+  margin-top: 1rem;
 }
 
 .switch-link a {
-  color: #007bff;
+  color: #0072ff;
   text-decoration: none;
+  font-weight: bold;
 }
 
 .switch-link a:hover {
   text-decoration: underline;
+}
+
+/* Success and error messages */
+.success-message {
+  color: green;
+  text-align: center;
+  margin-bottom: 1rem;
+}
+
+.error-message {
+  color: red;
+  text-align: center;
+  margin-bottom: 1rem;
+}
+
+/* Slide-in animation for form */
+@keyframes slide-in {
+  from {
+    transform: translateY(30px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
 }

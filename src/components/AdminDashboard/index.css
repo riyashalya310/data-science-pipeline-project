@@ -3,34 +3,35 @@
 /* Container for the admin dashboard */
 .admin-dashboard {
   padding: 20px;
-  background-color: #f4f4f4;
+  background-color: #f0f4f7;
   min-height: 100vh;
   display: flex;
   flex-direction: column;
+  font-family: 'Arial', sans-serif;
+  color: #333;
 }
 
 /* Error message styling */
 .error {
-  color: red;
-  font-size: 16px;
+  color: #dc3545;
+  font-size: 18px;
   margin-bottom: 20px;
   text-align: center;
+  animation: fade-in 0.5s ease-in-out;
 }
 
 /* Buttons container */
 .admin-dashboard > div {
   margin-bottom: 20px;
   display: flex;
-  justify-content: space-between;
-}
-
-.logout-button {
-  align-self: flex-end;
+  justify-content: flex-end;
+  gap: 15px;
 }
 
 /* Styling for Previous and Logout buttons */
 .previous-button,
-.logout-button {
+.logout-button,
+.insert-user-button {
   background-color: #007bff;
   color: white;
   border: none;
@@ -38,24 +39,42 @@
   font-size: 16px;
   cursor: pointer;
   border-radius: 5px;
-  transition: background-color 0.3s;
+  transition: background-color 0.3s ease, transform 0.2s;
+}
+
+.logout-button {
+  background-color: #dc3545;
+}
+
+.logout-button:hover {
+  background-color: #c82333;
 }
 
 .previous-button:hover,
-.logout-button:hover {
+.insert-user-button:hover {
   background-color: #0056b3;
 }
 
-/* Styling for the table */
+.previous-button:active,
+.logout-button:active,
+.insert-user-button:active {
+  transform: scale(0.98);
+}
+
+/* Table styling */
 .user-table {
   width: 100%;
   border-collapse: collapse;
   margin-top: 20px;
+  background-color: #fff;
+  border-radius: 8px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
 }
 
 .user-table th,
 .user-table td {
-  padding: 12px;
+  padding: 15px;
   text-align: left;
   border-bottom: 1px solid #ddd;
 }
@@ -63,6 +82,9 @@
 .user-table th {
   background-color: #007bff;
   color: white;
+  font-size: 16px;
+  font-weight: bold;
+  text-transform: uppercase;
 }
 
 .user-table tr:nth-child(even) {
@@ -71,6 +93,11 @@
 
 .user-table tr:hover {
   background-color: #f1f1f1;
+  transition: background-color 0.3s;
+}
+
+.user-table td {
+  font-size: 14px;
 }
 
 /* Styling for action buttons inside the table */
@@ -78,12 +105,12 @@
   background-color: #28a745;
   color: white;
   border: none;
-  padding: 5px 10px;
+  padding: 8px 12px;
   font-size: 14px;
   cursor: pointer;
-  border-radius: 3px;
+  border-radius: 4px;
   margin-right: 5px;
-  transition: background-color 0.3s;
+  transition: background-color 0.3s, transform 0.2s;
 }
 
 .user-table button:hover {
@@ -98,6 +125,10 @@
   background-color: #c82333;
 }
 
+.user-table button:active {
+  transform: scale(0.96);
+}
+
 /* Modal styles */
 .modal {
   position: fixed;
@@ -109,62 +140,84 @@
   display: flex;
   justify-content: center;
   align-items: center;
-  z-index: 1000; /* Ensures the modal is on top */
+  z-index: 1000;
 }
 
 .modal-content {
   background-color: white;
-  padding: 20px;
-  border-radius: 8px;
-  width: 400px;
+  padding: 30px;
+  border-radius: 10px;
+  width: 450px;
   max-width: 90%;
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  animation: slide-down 0.3s ease-out;
 }
 
 .modal-content h2 {
-  margin-top: 0;
+  margin-bottom: 20px;
+  font-size: 22px;
+  text-align: center;
+  color: #333;
 }
 
 .modal-content label {
   display: block;
   margin-bottom: 10px;
-  width: 100%;
+  font-size: 14px;
+  color: #555;
 }
 
 .modal-content input {
   width: 100%;
-  padding: 8px;
-  margin-top: 4px;
+  padding: 10px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 14px;
   margin-bottom: 20px;
+  transition: border 0.3s;
+}
+
+.modal-content input:focus {
+  border-color: #007bff;
 }
 
 .modal-content button {
-  margin-right: 10px;
-  padding: 8px 16px;
-  cursor: pointer;
-  margin: 10px;
-  width: 100px;
-  flex-grow: 1;
-}
-
-
-/* Insert User button styling */
-.insert-user-button {
-  background-color: #28a745;
+  padding: 10px 20px;
+  background-color: #007bff;
   color: white;
   border: none;
-  padding: 10px 20px;
-  font-size: 16px;
-  cursor: pointer;
   border-radius: 5px;
-  transition: background-color 0.3s;
+  cursor: pointer;
+  transition: background-color 0.3s ease, transform 0.2s;
+  margin: 10px 5px;
+  width: 45%;
 }
 
-.insert-user-button:hover {
-  background-color: #218838;
+.modal-content button:hover {
+  background-color: #0056b3;
 }
 
-/* Modal styles */
-.modal-content input {
-  margin-bottom: 10px; /* Add margin for spacing between fields */
+.modal-content button:active {
+  transform: scale(0.96);
+}
+
+/* Animations */
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slide-down {
+  from {
+    transform: translateY(-100px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
 }

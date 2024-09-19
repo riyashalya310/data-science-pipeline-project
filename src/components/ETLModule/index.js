@@ -7,44 +7,52 @@ import "./index.css";
 import { updateFile } from "../../store/slices/userSlice";
 import { DragDropContext, Draggable, Droppable } from "react-beautiful-dnd";
 
-
 // detecting outliers through z-score  (observed value-mean of sample)/standard deviation of sample
 const detectOutliers = (data, column) => {
-  const values = data.map(row => row[column]).filter(value => typeof value === 'number');
+  const values = data
+    .map((row) => row[column])
+    .filter((value) => typeof value === "number");
   const mean = values.reduce((acc, val) => acc + val, 0) / values.length;
-  const variance = values.reduce((acc, val) => acc + (val - mean) ** 2, 0) / values.length;
+  const variance =
+    values.reduce((acc, val) => acc + (val - mean) ** 2, 0) / values.length;
   const stdDev = Math.sqrt(variance);
-  return values.filter(value => Math.abs(value - mean) > 2 * stdDev);
+  return values.filter((value) => Math.abs(value - mean) > 2 * stdDev);
 };
-
 
 // Utility functions for scaling
 const minMaxScale = (value, min, max) => (value - min) / (max - min);
 const zScoreScale = (value, mean, stdDev) => (value - mean) / stdDev;
 
-const mean = (values) => values.reduce((sum, value) => sum + value, 0) / values.length;
-const stdDev = (values) => Math.sqrt(mean(values.map(value => Math.pow(value - mean(values), 2))));
-
-
-// Add these functions or similar as needed
-
+const mean = (values) =>
+  values.reduce((sum, value) => sum + value, 0) / values.length;
+const stdDev = (values) =>
+  Math.sqrt(mean(values.map((value) => Math.pow(value - mean(values), 2))));
 
 const ETLModule = (props) => {
   const files = useSelector((state) => state.user.files);
   const file = files.length > 0 ? files[files.length - 1] : null;
   const [isChatOpen, setIsChatOpen] = useState(true);
   const [messages, setMessages] = useState([
-    { type: "bot", text: "Hello! I'm here to assist you with your data. What would you like to do?" },
-    { type: "bot", text: "Please select an option from the dropdown below." }
+    {
+      type: "bot",
+      text: "Hello! I'm here to assist you with your data. What would you like to do?",
+    },
+    { type: "bot", text: "Please select an option from the dropdown below." },
   ]);
-  const [filteredContent, setFilteredContent] = useState(file ? file.content : []);
+  const [filteredContent, setFilteredContent] = useState(
+    file ? file.content : []
+  );
   const [awaitingTypeChange, setAwaitingTypeChange] = useState(false);
   const [awaitingColumnInput, setAwaitingColumnInput] = useState(false);
   const [outliers, setOutliers] = useState([]);
-  const [awaitingOutlierConfirmation, setAwaitingOutlierConfirmation] = useState(false);
-  const [columns, setColumns] = useState(file ? Object.keys(file.content[0]) : []);
+  const [awaitingOutlierConfirmation, setAwaitingOutlierConfirmation] =
+    useState(false);
+  const [columns, setColumns] = useState(
+    file ? Object.keys(file.content[0]) : []
+  );
   const [scalingColumns, setScalingColumns] = useState(false);
   const [numericalColumns, setNumericalColumns] = useState([]);
+  
   const dispatch = useDispatch();
 
   const moveToAnalysisBtn = () => {
@@ -57,6 +65,14 @@ const ETLModule = (props) => {
     history.push("/");
   };
 
+  const handleExit = () => {
+    // Dispatch the updated content to the Redux store before exiting
+    dispatch(updateFile(file.name, filteredContent));
+
+    // Close the chat and any other cleanup (if needed)
+    setIsChatOpen(false);
+  };
+
   const handleSendMessage = async (message) => {
     let updatedContent = [...filteredContent];
     let initialMessage = "";
@@ -64,34 +80,74 @@ const ETLModule = (props) => {
 
     setMessages((prevMessages) => [
       ...prevMessages,
-      { type: "user", text: message }
+      { type: "user", text: message },
     ]);
 
-    if (awaitingColumnInput) {
-      if (message.toLowerCase() === "no") {
-        setAwaitingColumnInput(false);
+    if (awaitingOutlierConfirmation) {
+      if (message.toLowerCase() === "yes") {
+        initialMessage = "Removing outliers from the data...";
+        updatedContent = filteredContent.filter((row) => {
+          return !Object.keys(outliers).some((col) =>
+            outliers[col].includes(row[col])
+          );
+        });
+
+        finalMessage = "Outliers removed.";
+
+        setFilteredContent(updatedContent);
+        setOutliers({});
+        setAwaitingOutlierConfirmation(false);
+
+        dispatch(updateFile(file.name, updatedContent));
+
         setMessages((prevMessages) => [
           ...prevMessages,
-          { type: "bot", text: "No changes made." },
-          { type: "bot", text: "Please select an option from the dropdown below." }
+          { type: "bot", text: initialMessage },
+          { type: "bot", text: finalMessage },
+          {
+            type: "bot",
+            text: "Please select an option from the dropdown below.",
+          },
         ]);
-        return;
+      } else if (message.toLowerCase() === "no") {
+        setAwaitingOutlierConfirmation(false);
+        setMessages((prevMessages) => [
+          ...prevMessages,
+          { type: "bot", text: "Outliers not removed." },
+          {
+            type: "bot",
+            text: "Please select an option from the dropdown below.",
+          },
+        ]);
+      } else {
+        setMessages((prevMessages) => [
+          ...prevMessages,
+          { type: "bot", text: "Invalid input. Please type 'yes' or 'no'." },
+        ]);
       }
+      return;
+    }
 
-      // Handling column scaling if awaiting for column names
+    if (awaitingColumnInput) {
       if (scalingColumns) {
-        const selectedColumns = message.split(",").map(name => name.trim());
-        const columnsToScale = selectedColumns.filter(name => numericalColumns.includes(name));
+        const selectedColumns = message.split(",").map((name) => name.trim());
+        const columnsToScale = selectedColumns.filter((name) =>
+          numericalColumns.includes(name)
+        );
 
         if (columnsToScale.length > 0) {
           initialMessage = "Scaling selected columns...";
-          const scaledContent = filteredContent.map(row => {
+          const scaledContent = filteredContent.map((row) => {
             const newRow = { ...row };
-            columnsToScale.forEach(col => {
-              const values = filteredContent.map(r => r[col]).filter(v => typeof v === 'number');
+            columnsToScale.forEach((col) => {
+              const values = filteredContent
+                .map((r) => r[col])
+                .filter((v) => typeof v === "number");
               const colMean = mean(values);
               const colStdDev = stdDev(values);
-              newRow[col] = zScoreScale(row[col], colMean, colStdDev).toFixed(2);
+              newRow[col] = zScoreScale(row[col], colMean, colStdDev).toFixed(
+                2
+              );
             });
             return newRow;
           });
@@ -108,244 +164,295 @@ const ETLModule = (props) => {
             ...prevMessages,
             { type: "bot", text: initialMessage },
             { type: "bot", text: finalMessage },
-            { type: "bot", text: "Please select an option from the dropdown below." }
+            {
+              type: "bot",
+              text: "Please select an option from the dropdown below.",
+            },
           ]);
         } else {
           finalMessage = "Invalid column names. No columns scaled.";
           setMessages((prevMessages) => [
             ...prevMessages,
-            { type: "bot", text: finalMessage }
+            { type: "bot", text: finalMessage },
           ]);
         }
-        return;
-      }
-
-      // Handling other types of column input
-      const [columnName, dtype] = message.split(":").map(item => item.trim());
-
-      if (columnName && dtype) {
-        initialMessage = `Changing the data type of column '${columnName}' to '${dtype}'...`;
-
-        updatedContent = filteredContent.map(row => {
-          const newRow = { ...row };
-          if (columnName in newRow) {
-            if (dtype === "string") {
-              newRow[columnName] = String(newRow[columnName]);
-            } else if (dtype === "number") {
-              newRow[columnName] = Number(newRow[columnName]);
-            } else if (dtype === "boolean") {
-              newRow[columnName] = Boolean(newRow[columnName]);
-            }
-          }
-          return newRow;
-        });
-
-        finalMessage = `Data type of column '${columnName}' changed to '${dtype}'.`;
-
-        setFilteredContent(updatedContent);
-        setAwaitingColumnInput(false);
-
-        dispatch(updateFile(file.name, updatedContent));
       } else {
-        finalMessage = "Invalid format. Please write it as - {column name} : {dtype:}.";
-      }
+        const [columnName, dtype] = message
+          .split(":")
+          .map((item) => item.trim());
 
-      setMessages((prevMessages) => [
-        ...prevMessages,
-        { type: "bot", text: initialMessage },
-        { type: "bot", text: finalMessage },
-        { type: "bot", text: "Please select an option from the dropdown below." }
-      ]);
-    } else if (message === "Show Info About Columns") {
-      initialMessage = "Gathering information about columns...";
-      finalMessage = "Here is the information about the columns:";
+        if (columnName && dtype) {
+          initialMessage = `Changing the data type of column '${columnName}' to '${dtype}'...`;
 
-      const infoMessages = Object.keys(filteredContent[0]).map(key => {
-        const nonNullValues = filteredContent
-          .map(row => row[key])
-          .filter(value => value !== null && value !== "").length;
-        return `Column: ${key}, Non-null Count: ${nonNullValues}, Data Type: ${typeof filteredContent[0][key]}`;
-      });
+          updatedContent = filteredContent.map((row) => {
+            const newRow = { ...row };
+            if (columnName in newRow) {
+              if (dtype === "string") {
+                newRow[columnName] = String(newRow[columnName]);
+              } else if (dtype === "number") {
+                newRow[columnName] = Number(newRow[columnName]);
+              } else if (dtype === "boolean") {
+                newRow[columnName] = Boolean(newRow[columnName]);
+              }
+            }
+            return newRow;
+          });
 
-      setAwaitingColumnInput(true);
-      setAwaitingTypeChange(false);
+          finalMessage = `Data type of column '${columnName}' changed to '${dtype}'.`;
 
-      setMessages((prevMessages) => [
-        ...prevMessages,
-        { type: "bot", text: initialMessage },
-        { type: "bot", text: finalMessage },
-        ...infoMessages.map(info => ({ type: "bot", text: info })),
-        {
-          type: "bot",
-          text: "If you want to change the data type of any column, write it as - {column name} : {dtype:}, or type 'no' to skip."
-        }
-      ]);
-    } else if (message === "Handle NA") {
-      initialMessage = "Handling NA values...";
+          setFilteredContent(updatedContent);
+          setAwaitingColumnInput(false);
 
-      updatedContent = updatedContent.filter(row => {
-        const hasNull = Object.values(row).some(value => value === null || value === "");
-        return !hasNull;
-      });
-
-      finalMessage = updatedContent.length < filteredContent.length ? "Great! Null values handled." : "No null values present.";
-
-      setFilteredContent(updatedContent);
-      dispatch(updateFile(file.name, updatedContent));
-
-      setMessages((prevMessages) => [
-        ...prevMessages,
-        { type: "bot", text: initialMessage },
-        { type: "bot", text: finalMessage },
-        { type: "bot", text: "Please select an option from the dropdown below." }
-      ]);
-    } else if (message === "Remove Duplicates") {
-      initialMessage = "Removing duplicate rows...";
-
-      const uniqueContent = new Set();
-      updatedContent = updatedContent.filter(row => {
-        const rowString = JSON.stringify(row);
-        if (uniqueContent.has(rowString)) {
-          return false;
+          dispatch(updateFile(file.name, updatedContent));
         } else {
-          uniqueContent.add(rowString);
-          return true;
+          finalMessage =
+            "Invalid format. Please write it as - {column name} : {dtype}.";
         }
-      });
-
-      finalMessage = updatedContent.length < filteredContent.length ? "Great! Duplicates removed." : "No duplicates found.";
-
-      setFilteredContent(updatedContent);
-      dispatch(updateFile(file.name, updatedContent));
-
-      setMessages((prevMessages) => [
-        ...prevMessages,
-        { type: "bot", text: initialMessage },
-        { type: "bot", text: finalMessage },
-        { type: "bot", text: "Please select an option from the dropdown below." }
-      ]);
-    } else if (message === "Remove Outliers") {
-      initialMessage = "Detecting outliers in the data...";
-      const columnsWithOutliers = {};
-
-      columns.forEach(col => {
-        const outliersInColumn = detectOutliers(filteredContent, col);
-        if (outliersInColumn.length > 0) {
-          columnsWithOutliers[col] = outliersInColumn;
-        }
-      });
-
-      if (Object.keys(columnsWithOutliers).length > 0) {
-        const outlierMessages = Object.entries(columnsWithOutliers).map(([col, outliers]) => {
-          return `Column: ${col}, Outliers: ${outliers.join(", ")}`;
-        });
-
-        setOutliers(columnsWithOutliers);
-        setAwaitingOutlierConfirmation(true);
 
         setMessages((prevMessages) => [
           ...prevMessages,
           { type: "bot", text: initialMessage },
-          ...outlierMessages.map(msg => ({ type: "bot", text: msg })),
-          { type: "bot", text: "Do you want to remove these outliers? Type 'yes' to remove or 'no' to skip." }
-        ]);
-      } else {
-        setMessages((prevMessages) => [
-          ...prevMessages,
-          { type: "bot", text: "No outliers detected in the data." },
-          { type: "bot", text: "Please select an option from the dropdown below." }
+          { type: "bot", text: finalMessage },
+          {
+            type: "bot",
+            text: "Please select an option from the dropdown below.",
+          },
         ]);
       }
-    } else if (awaitingOutlierConfirmation) {
-      if (message.toLowerCase() === "yes") {
-        initialMessage = "Removing outliers from the data...";
-        updatedContent = filteredContent.filter(row => {
-          return !Object.keys(outliers).some(col => outliers[col].includes(row[col]));
+      return;
+    }
+
+    switch (message) {
+      case "Show Info About Columns":
+        initialMessage = "Gathering information about columns...";
+        finalMessage = "Here is the information about the columns:";
+
+        const infoMessages = columns.map((key) => {
+          const nonNullValues = filteredContent
+            .map((row) => row[key])
+            .filter((value) => value !== null && value !== "").length;
+          return `Column: ${key}, Non-null Count: ${nonNullValues}, Data Type: ${typeof filteredContent[0][
+            key
+          ]}`;
         });
 
-        finalMessage = "Outliers removed.";
+        setAwaitingColumnInput(true);
+
+        setMessages((prevMessages) => [
+          ...prevMessages,
+          { type: "bot", text: initialMessage },
+          { type: "bot", text: finalMessage },
+          ...infoMessages.map((info) => ({ type: "bot", text: info })),
+          {
+            type: "bot",
+            text: "If you want to change the data type of any column, write it as - {column name} : {dtype}, or type 'no' to skip.",
+          },
+        ]);
+        break;
+
+      case "Handle NA":
+        initialMessage = "Handling NA values...";
+
+        updatedContent = updatedContent.filter((row) => {
+          const hasNull = Object.values(row).some(
+            (value) => value === null || value === ""
+          );
+          return !hasNull;
+        });
+
+        finalMessage =
+          updatedContent.length < filteredContent.length
+            ? "Great! Null values handled."
+            : "No null values present.";
 
         setFilteredContent(updatedContent);
-        setOutliers([]);
-        setAwaitingOutlierConfirmation(false);
-
         dispatch(updateFile(file.name, updatedContent));
 
         setMessages((prevMessages) => [
           ...prevMessages,
           { type: "bot", text: initialMessage },
           { type: "bot", text: finalMessage },
-          { type: "bot", text: "Please select an option from the dropdown below." }
+          {
+            type: "bot",
+            text: "Please select an option from the dropdown below.",
+          },
         ]);
-      } else if (message.toLowerCase() === "no") {
-        setAwaitingOutlierConfirmation(false);
-        setMessages((prevMessages) => [
-          ...prevMessages,
-          { type: "bot", text: "Outliers not removed." },
-          { type: "bot", text: "Please select an option from the dropdown below." }
-        ]);
-      } else {
-        setMessages((prevMessages) => [
-          ...prevMessages,
-          { type: "bot", text: "Invalid input. Please type 'yes' or 'no'." }
-        ]);
-      }
-    } else if (message === "Scale Columns") {
-      initialMessage = "Listing numerical columns for scaling...";
-      const numericalCols = columns.filter(col => {
-        return filteredContent.every(row => typeof row[col] === 'number');
-      });
+        break;
 
-      if (numericalCols.length > 0) {
-        setNumericalColumns(numericalCols); // Set numericalColumns state
+      case "Remove Duplicates":
+        initialMessage = "Removing duplicate rows...";
 
-        const numericalMessages = numericalCols.map((col, index) => {
-          return `${index + 1}. ${col}`;
+        const uniqueContent = new Set();
+        updatedContent = updatedContent.filter((row) => {
+          const rowString = JSON.stringify(row);
+          if (uniqueContent.has(rowString)) {
+            return false;
+          } else {
+            uniqueContent.add(rowString);
+            return true;
+          }
         });
+
+        finalMessage =
+          updatedContent.length < filteredContent.length
+            ? "Great! Duplicates removed."
+            : "No duplicates found.";
+
+        setFilteredContent(updatedContent);
+        dispatch(updateFile(file.name, updatedContent));
 
         setMessages((prevMessages) => [
           ...prevMessages,
           { type: "bot", text: initialMessage },
-          ...numericalMessages.map(msg => ({ type: "bot", text: msg })),
-          { type: "bot", text: "Please enter the names of the columns you want to scale, separated by commas." }
+          { type: "bot", text: finalMessage },
+          {
+            type: "bot",
+            text: "Please select an option from the dropdown below.",
+          },
         ]);
+        break;
 
+      case "Remove Outliers":
+        initialMessage = "Detecting outliers in the data...";
+        const columnsWithOutliers = {};
+
+        columns.forEach((col) => {
+          const outliersInColumn = detectOutliers(filteredContent, col);
+          if (outliersInColumn.length > 0) {
+            columnsWithOutliers[col] = outliersInColumn;
+          }
+        });
+
+        if (Object.keys(columnsWithOutliers).length > 0) {
+          const outlierMessages = Object.entries(columnsWithOutliers).map(
+            ([col, outliers]) => {
+              return `Column: ${col}, Outliers: ${outliers.join(", ")}`;
+            }
+          );
+
+          setOutliers(columnsWithOutliers);
+          setAwaitingOutlierConfirmation(true);
+
+          setMessages((prevMessages) => [
+            ...prevMessages,
+            { type: "bot", text: initialMessage },
+            ...outlierMessages.map((text) => ({ type: "bot", text })),
+            {
+              type: "bot",
+              text: "Do you want to remove these outliers? Type 'yes' to remove or 'no' to skip.",
+            },
+          ]);
+        } else {
+          finalMessage = "No outliers detected.";
+          setMessages((prevMessages) => [
+            ...prevMessages,
+            { type: "bot", text: initialMessage },
+            { type: "bot", text: finalMessage },
+            {
+              type: "bot",
+              text: "Please select an option from the dropdown below.",
+            },
+          ]);
+        }
+        break;
+
+      case "Scale Columns":
+        initialMessage = "Scaling columns...";
         setAwaitingColumnInput(true);
-        setScalingColumns(true); // Set the state for scaling columns
-      } else {
+        setScalingColumns(true);
+
         setMessages((prevMessages) => [
           ...prevMessages,
-          { type: "bot", text: "No numerical columns found to scale." },
-          { type: "bot", text: "Please select an option from the dropdown below." }
+          { type: "bot", text: initialMessage },
+          {
+            type: "bot",
+            text: "Please provide the names of the columns you want to scale, separated by commas.",
+          },
         ]);
-      }
-    } else {
-      setMessages((prevMessages) => [
-        ...prevMessages,
-        { type: "bot", text: "Invalid option. Please select an option from the dropdown below." }
-      ]);
+        break;
+
+      // New case for Exit
+      case "Exit":
+        initialMessage = "Saving the processed data and closing chat...";
+
+        // Store the modified table in Redux
+        dispatch(updateFile(file.name, updatedContent));
+        console.log(updatedContent);
+
+        // Close the chat
+        setIsChatOpen(false);
+
+        finalMessage = "Table updated and chat closed.";
+
+        setMessages((prevMessages) => [
+          ...prevMessages,
+          { type: "bot", text: initialMessage },
+          { type: "bot", text: finalMessage },
+        ]);
+        break;
+
+      default:
+        setMessages((prevMessages) => [
+          ...prevMessages,
+          {
+            type: "bot",
+            text: "I didn't understand that. Please choose an option from the dropdown menu.",
+          },
+        ]);
+        break;
     }
   };
 
+  const handleDeleteRow = (indexToDelete) => {
+    // Filter out the row that needs to be deleted
+    const updatedContent = filteredContent.filter((_, index) => index !== indexToDelete);
   
+    // Update the local state with the new content
+    setFilteredContent(updatedContent);
+  
+    // Dispatch the updated content to Redux
+    dispatch(updateFile(file.name, updatedContent));
+  };
+
+  const handleCellChange = (rowIndex, fieldName, newValue) => {
+    // Create a copy of the existing data (assuming your data is stored in an array of objects)
+    const updatedData = [...filteredContent];
+    
+    // Clone the specific row object before updating
+    const updatedRow = { ...updatedData[rowIndex] };
+  
+    // Now update the value safely
+    updatedRow[fieldName] = newValue;
+  
+    // Replace the modified row back into the updated data array
+    updatedData[rowIndex] = updatedRow;
+  
+    // Set the state with the new data
+    setFilteredContent(updatedData);
+  };
+  
+  
+  
+  
+
   const handleRowDragEnd = (result) => {
     if (!result.destination) return;
-  
+
     const newFilteredContent = Array.from(filteredContent);
     const [movedRow] = newFilteredContent.splice(result.source.index, 1);
     newFilteredContent.splice(result.destination.index, 0, movedRow);
-  
+
     setFilteredContent(newFilteredContent);
     dispatch(updateFile(file.name, newFilteredContent));
   };
-  
+
   const handleColumnDragEnd = (result) => {
     if (!result.destination) return;
-  
+
     const newColumns = Array.from(columns);
     const [movedColumn] = newColumns.splice(result.source.index, 1);
     newColumns.splice(result.destination.index, 0, movedColumn);
-  
+
     const newFilteredContent = filteredContent.map((row) => {
       const newRow = {};
       newColumns.forEach((col) => {
@@ -353,80 +460,89 @@ const ETLModule = (props) => {
       });
       return newRow;
     });
-  
+
     setColumns(newColumns);
     setFilteredContent(newFilteredContent);
-  
+
     dispatch(updateFile(file.name, newFilteredContent));
   };
-  
 
   return (
     <div className="etl-module-container">
-      <div className={`etl-content ${isChatOpen ? "with-chat-open" : "with-chat-closed"}`}>
+      <div
+        className={`etl-content ${
+          isChatOpen ? "with-chat-open" : "with-chat-closed"
+        }`}
+      >
         {file ? (
           <div>
             <div className="etl-header">
-              <button type="button" className="btn btn-primary" onClick={backBtn}>
+              <button
+                type="button"
+                className="btn btn-primary"
+                onClick={backBtn}
+              >
                 <IoMdArrowBack />
                 Back
               </button>
               <h2 className="file-content-heading">
                 File Content: <span className="file-name">{file.name}</span>
               </h2>
-              <button type="button" className="btn btn-primary" onClick={moveToAnalysisBtn}>
+              <button
+                type="button"
+                className="btn btn-primary"
+                onClick={moveToAnalysisBtn}
+              >
                 Final View
                 <FaArrowRight />
               </button>
             </div>
             {Array.isArray(filteredContent) && filteredContent.length > 0 ? (
               <DragDropContext onDragEnd={handleRowDragEnd}>
-                <Droppable droppableId="droppable-rows">
-                  {(provided) => (
-                    <table
-                      className="file-table"
-                      ref={provided.innerRef}
-                      {...provided.droppableProps}
-                    >
-                      <thead>
-                        <tr>
-                          {columns.map((col, index) => (
-                            <Draggable key={col} draggableId={col} index={index}>
-                              {(provided) => (
-                                <th
-                                  ref={provided.innerRef}
-                                  {...provided.draggableProps}
-                                  {...provided.dragHandleProps}
-                                >
-                                  {col}
-                                </th>
-                              )}
-                            </Draggable>
-                          ))}
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {filteredContent.map((row, index) => (
-                          <Draggable key={index} draggableId={`row-${index}`} index={index}>
-                            {(provided) => (
-                              <tr
-                                ref={provided.innerRef}
-                                {...provided.draggableProps}
-                                {...provided.dragHandleProps}
-                              >
-                                {columns.map((col, i) => (
-                                  <td key={i}>{row[col]}</td>
-                                ))}
-                              </tr>
-                            )}
-                          </Draggable>
+              <Droppable droppableId="droppable-rows">
+                {(provided) => (
+                  <table className="file-table" ref={provided.innerRef} {...provided.droppableProps}>
+                    <thead>
+                      <tr>
+                        {columns.map((col, index) => (
+                          <th key={col}>{col}</th>
                         ))}
-                        {provided.placeholder}
-                      </tbody>
-                    </table>
-                  )}
-                </Droppable>
-              </DragDropContext>
+                        <th>Delete</th> {/* Column for delete button */}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {filteredContent.map((row, rowIndex) => (
+                        <Draggable key={rowIndex} draggableId={`row-${rowIndex}`} index={rowIndex}>
+                          {(provided) => (
+                            <tr ref={provided.innerRef} {...provided.draggableProps} {...provided.dragHandleProps}>
+                              {columns.map((col) => (
+                                <td key={col}>
+                                  <input
+                                    type="text"
+                                    value={row[col]}
+                                    onChange={(e) => handleCellChange(rowIndex, col, e.target.value)} // Editable cell
+                                  />
+                                </td>
+                              ))}
+                              <td>
+                                <button
+                                  type="button"
+                                  className="delete-row-btn"
+                                  onClick={() => handleDeleteRow(rowIndex)}
+                                >
+                                  Delete
+                                </button>
+                              </td>
+                            </tr>
+                          )}
+                        </Draggable>
+                      ))}
+                      {provided.placeholder}
+                    </tbody>
+                  </table>
+                )}
+              </Droppable>
+            </DragDropContext>
             ) : (
               <p>No data available</p>
             )}
@@ -434,7 +550,10 @@ const ETLModule = (props) => {
         ) : (
           <p>No file selected</p>
         )}
-        <button className={`reopen-chat-btn ${isChatOpen ? "hidden" : "visible"}`} onClick={() => setIsChatOpen(true)}>
+        <button
+          className={`reopen-chat-btn ${isChatOpen ? "hidden" : "visible"}`}
+          onClick={() => setIsChatOpen(true)}
+        >
           Reopen Chat
         </button>
       </div>
@@ -443,7 +562,14 @@ const ETLModule = (props) => {
           isOpen={isChatOpen}
           onClose={() => setIsChatOpen(false)}
           onSend={handleSendMessage}
-          options={["Handle NA", "Remove Duplicates", "Show Info About Columns", "Remove Outliers","Scale Columns", "Exit"]}
+          options={[
+            "Handle NA",
+            "Remove Duplicates",
+            "Show Info About Columns",
+            "Remove Outliers",
+            "Scale Columns",
+            "Exit",
+          ]}
           messages={messages}
           awaitingColumnInput={awaitingColumnInput}
           awaitingTypeChange={awaitingTypeChange}
@@ -452,6 +578,6 @@ const ETLModule = (props) => {
       )}
     </div>
   );
-}
+};
 
 export default ETLModule;

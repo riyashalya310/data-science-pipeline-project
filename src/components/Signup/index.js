@@ -1,7 +1,6 @@
-// src/components/Signup.js
 import React, { useState } from 'react';
 import axios from 'axios';
-import './index.css';
+import './index.css'; // Update the CSS import to the new file
 
 const Signup = ({ history }) => {
   const [name, setName] = useState('');
@@ -27,42 +26,47 @@ const Signup = ({ history }) => {
 
   return (
     <div className="signup-container">
-      <form className="signup-form" onSubmit={handleSubmit}>
-        <h2>Signup</h2>
-        <div className="form-group">
-          <label>Name:</label>
-          <input
-            type="text"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            required
-          />
-        </div>
-        <div className="form-group">
-          <label>Email:</label>
-          <input
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-          />
-        </div>
-        <div className="form-group">
-          <label>Password:</label>
-          <input
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-          />
-        </div>
-        {message && <p>{message}</p>}
-        {error && <p style={{ color: 'red' }}>{error}</p>}
-        <button type="submit">Sign Up</button>
-        <p className="switch-link">
-          Already have an account? <a href="/login">Login</a>
-        </p>
-      </form>
+      <div className="signup-wrapper">
+        <form className="signup-form" onSubmit={handleSubmit}>
+          <h2 className="signup-title">Signup</h2>
+          <div className="form-group">
+            <label htmlFor="name">Name:</label>
+            <input
+              type="text"
+              id="name"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              required
+            />
+          </div>
+          <div className="form-group">
+            <label htmlFor="email">Email:</label>
+            <input
+              type="email"
+              id="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+            />
+          </div>
+          <div className="form-group">
+            <label htmlFor="password">Password:</label>
+            <input
+              type="password"
+              id="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+            />
+          </div>
+          {message && <p className="success-message">{message}</p>}
+          {error && <p className="error-message">{error}</p>}
+          <button type="submit" className="signup-button">Sign Up</button>
+          <p className="switch-link">
+            Already have an account? <a href="/login">Login</a>
+          </p>
+        </form>
+      </div>
     </div>
   );
 };

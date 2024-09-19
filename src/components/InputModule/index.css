@@ -2,39 +2,40 @@ body {
   font-family: "Arial", sans-serif;
   margin: 0;
   padding: 0;
-  background-color: #f5f5f5;
+  background-color: #f9f9f9;
   color: #333;
 }
 
 .container-fluid {
-  padding: 30px;
+  padding: 40px;
   background-color: #fff;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-  border-radius: 10px;
-  max-width: 800px;
-  margin: 50px auto;
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+  border-radius: 12px;
+  max-width: 900px;
+  margin: 60px auto;
+  transition: all 0.3s ease;
 }
 
 h1 {
-  font-size: 2em;
-  color: #004085;
-  border-bottom: 2px solid #004085;
-  padding-bottom: 10px;
-  margin-bottom: 20px;
+  font-size: 2.4em;
+  color: #00274d;
+  border-bottom: 3px solid #00274d;
+  padding-bottom: 15px;
+  margin-bottom: 25px;
 }
 
 h2 {
-  font-size: 1.5em;
-  color: #0056b3;
-  margin-top: 20px;
-  margin-bottom: 10px;
+  font-size: 1.7em;
+  color: #004085;
+  margin-top: 25px;
+  margin-bottom: 15px;
 }
 
 h3 {
-  font-size: 1.2em;
-  color: #007bff;
-  margin-top: 20px;
-  margin-bottom: 10px;
+  font-size: 1.3em;
+  color: #0056b3;
+  margin-top: 25px;
+  margin-bottom: 15px;
 }
 
 ul {
@@ -44,102 +45,117 @@ ul {
 }
 
 li {
-  margin-bottom: 10px;
+  margin-bottom: 12px;
+  line-height: 1.5;
 }
 
 button {
-  background-color: #007bff;
+  background-color: #0056b3;
   color: #fff;
-  padding: 10px 15px;
+  padding: 12px 18px;
   border: none;
-  border-radius: 5px;
+  border-radius: 8px;
   cursor: pointer;
-  transition: background-color 0.3s ease;
+  font-weight: bold;
+  transition: background-color 0.3s ease, box-shadow 0.2s ease;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
 }
 
 button:hover {
-  background-color: #0056b3;
+  background-color: #004085;
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2);
 }
 
 form {
   display: flex;
   flex-direction: column;
+  gap: 20px;
 }
 
 input[type="file"] {
-  margin-top: 10px;
+  margin-top: 15px;
+  padding: 12px;
+  border: 2px solid #ddd;
+  border-radius: 8px;
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+input[type="file"]:focus {
+  border-color: #007bff;
+  outline: none;
+  box-shadow: 0 0 8px rgba(0, 123, 255, 0.25);
 }
 
 #label {
   font-weight: bold;
-  margin-bottom: 10px;
+  margin-bottom: 12px;
   display: block;
 }
 
 #helpText {
   font-size: 0.9em;
-  color: #666;
-  margin-top: 5px;
+  color: #777;
+  margin-top: 8px;
+  font-style: italic;
 }
 
 #btnContainer {
-  margin-top: 20px;
+  margin-top: 25px;
 }
 
 select {
-  padding: 10px;
+  padding: 12px;
   border: 1px solid #ddd;
-  border-radius: 5px;
-  font-size: 1em;
+  border-radius: 8px;
+  font-size: 1.1em;
+  background-color: #fff;
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
 }
 
 select:focus {
   border-color: #007bff;
   outline: none;
+  box-shadow: 0 0 8px rgba(0, 123, 255, 0.25);
 }
 
-input[type="file"] {
-  display: block;
-  margin: 15px 0;
+.dropdown {
+  width: 100%;
+  padding: 12px;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  font-size: 1.1em;
+  background-color: #f9f9f9;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  margin-top: 12px;
+}
+
+.dropdown option {
+  padding: 12px;
+  background-color: #fff;
 }
 
 @media (max-width: 768px) {
   .container-fluid {
-    padding: 20px;
+    padding: 25px;
   }
 
   h1 {
-    font-size: 1.5em;
+    font-size: 1.8em;
   }
 
   h2 {
-    font-size: 1.2em;
+    font-size: 1.4em;
   }
 
   h3 {
-    font-size: 1em;
+    font-size: 1.1em;
   }
 
   button {
-    padding: 8px 12px;
+    padding: 10px 16px;
   }
 
   select, input[type="file"] {
     font-size: 0.9em;
   }
-}
-
-.dropdown {
-  width: 100%;
-  padding: 10px;
-  border: 1px solid #ccc;
-  border-radius: 5px;
-  font-size: 1em;
-  background-color: #fff;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  margin-top: 10px;
-}
-
-.dropdown option {
-  padding: 10px;
 }
