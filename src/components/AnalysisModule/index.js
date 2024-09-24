@@ -43,7 +43,7 @@ ChartJS.register(
 
 const AnalysisModule = () => {
   const files = useSelector((state) => state.user.files);
-  const file = files.find((f) => f.name === "birthplace-2018-census-csv.csv");
+  const file = files.length > 0 ? files[files.length - 1] : null;
   const [charts, setCharts] = useState([]);
   const [aggregateResults, setAggregateResults] = useState([]);
   const [selectedFunction, setSelectedFunction] = useState("");

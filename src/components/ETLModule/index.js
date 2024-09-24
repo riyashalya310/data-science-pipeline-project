@@ -119,6 +119,7 @@ const ETLModule = (props) => {
           setScalingColumns(false);
 
           dispatch(updateFile(file.name, scaledContent));
+          console.log(`Scaled - ${file}`)
 
           setMessages((prevMessages) => [
             ...prevMessages,
@@ -162,6 +163,7 @@ const ETLModule = (props) => {
         setAwaitingColumnInput(false);
 
         dispatch(updateFile(file.name, updatedContent));
+        console.log(`Changing dtype - ${file}`)
       } else {
         finalMessage = "Invalid format. Please write it as - {column name} : {dtype:}.";
       }
@@ -207,7 +209,7 @@ const ETLModule = (props) => {
       finalMessage = updatedContent.length < filteredContent.length ? "Great! Null values handled." : "No null values present.";
 
       setFilteredContent(updatedContent);
-      dispatch(updateFile(file.name, updatedContent));
+      dispatch(updateFile({ name: file.name, content: updatedContent }));
 
       setMessages((prevMessages) => [
         ...prevMessages,
@@ -232,7 +234,7 @@ const ETLModule = (props) => {
       finalMessage = updatedContent.length < filteredContent.length ? "Great! Duplicates removed." : "No duplicates found.";
 
       setFilteredContent(updatedContent);
-      dispatch(updateFile(file.name, updatedContent));
+      dispatch(updateFile({ name: file.name, content: updatedContent }));
 
       setMessages((prevMessages) => [
         ...prevMessages,
@@ -285,7 +287,8 @@ const ETLModule = (props) => {
         setOutliers([]);
         setAwaitingOutlierConfirmation(false);
 
-        dispatch(updateFile(file.name, updatedContent));
+        dispatch(updateFile({ name: file.name, content: updatedContent }));
+      
 
         setMessages((prevMessages) => [
           ...prevMessages,
@@ -325,6 +328,9 @@ const ETLModule = (props) => {
           ...numericalMessages.map(msg => ({ type: "bot", text: msg })),
           { type: "bot", text: "Please enter the names of the columns you want to scale, separated by commas." }
         ]);
+
+        dispatch(updateFile({ name: file.name, content: updatedContent }));
+      
 
         setAwaitingColumnInput(true);
         setScalingColumns(true);
