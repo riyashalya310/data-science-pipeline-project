@@ -3,9 +3,9 @@ import { useSelector, useDispatch } from "react-redux";
 import { FaArrowRight } from "react-icons/fa";
 import { IoMdArrowBack } from "react-icons/io";
 import ChatSidebar from "../SideBar";
-import "./index.css";
 import { updateFile } from "../../store/slices/userSlice";
 import { DragDropContext, Draggable, Droppable } from "react-beautiful-dnd";
+import "./index.css";
 
 // detecting outliers through z-score  (observed value-mean of sample)/standard deviation of sample
 const detectOutliers = (data, column) => {
@@ -349,7 +349,6 @@ const ETLModule = (props) => {
     }
   };
 
-  
 
   const handleDeleteRow = (indexToDelete) => {
     // Filter out the row that needs to be deleted
