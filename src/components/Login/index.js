@@ -3,8 +3,9 @@ import { withRouter } from "react-router-dom";
 import { useDispatch } from "react-redux";
 import { setUser } from "../../store/slices/userSlice";
 import axios from "axios";
-import './index.css'; // Ensure this path is correct
-
+import { jwtDecode } from "jwt-decode";
+import { GoogleLogin } from "@react-oauth/google";
+import "./index.css"; 
 const Login = ({ history }) => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -47,6 +48,17 @@ const Login = ({ history }) => {
       <div className="login-wrapper">
         <form className="login-form" onSubmit={handleLogin}>
           <h2 className="login-title">Login</h2>
+          <div style={{display: "flex",flexDirection : "row",justifyContent: "center"}}>
+          <GoogleLogin
+            onSuccess={(credentialResponse) => {
+              const decoded = jwtDecode(credentialResponse?.credential);
+              setEmail(decoded.email);
+            }}
+            onError={() => {
+              console.log("Login Failed");
+            }}
+          />
+          </div>
           <div className="form-group">
             <label htmlFor="email">Email:</label>
             <input

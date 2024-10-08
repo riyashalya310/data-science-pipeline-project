@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 import axios from 'axios';
+import { jwtDecode } from "jwt-decode";
+import { GoogleLogin } from "@react-oauth/google";
 import './index.css'; // Ensure this path is correct
 
 const Signup = ({ history }) => {
@@ -22,6 +24,7 @@ const Signup = ({ history }) => {
         password
       });
       setMessage(response.data.message);
+      history.replace('/login')
     } catch (err) {
       setError('Error signing up');
     } finally {
@@ -34,6 +37,18 @@ const Signup = ({ history }) => {
       <div className="signup-wrapper">
         <form className="signup-form" onSubmit={handleSubmit}>
           <h2 className="signup-title">Signup</h2>
+          <div style={{display: "flex",flexDirection : "row",justifyContent: "center"}}>
+          <GoogleLogin
+            onSuccess={(credentialResponse) => {
+              const decoded = jwtDecode(credentialResponse?.credential);
+              setEmail(decoded.email);
+              setName(decoded.given_name+' '+decoded.family_name);
+            }}
+            onError={() => {
+              console.log("Login Failed");
+            }}
+          />
+          </div>
           <div className="form-group">
             <label htmlFor="name">Name:</label>
             <input

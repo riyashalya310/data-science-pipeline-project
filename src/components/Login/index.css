@@ -1,27 +1,41 @@
-/* Full page background */
+/* Full page background with animation */
+@keyframes gradient-shift {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
 .login-container {
   display: flex;
   align-items: center;
   justify-content: center;
   height: 100vh;
-  background: linear-gradient(to right, #ff416c, #ff4b2b);
+  background: linear-gradient(270deg, #ff416c, #ff4b2b);
+  background-size: 400% 400%;
+  animation: gradient-shift 8s ease infinite;
   margin: 0;
 }
 
-/* Centered wrapper with animation */
+/* Centered wrapper with subtle scaling animation */
 .login-wrapper {
   background-color: rgba(255, 255, 255, 0.9);
   padding: 40px;
   border-radius: 12px;
   box-shadow: 0 8px 30px rgba(0, 0, 0, 0.15);
-  animation: slide-in 0.7s ease;
+  animation: slide-in 0.7s ease, scale-up 0.3s ease;
   max-width: 400px;
   width: 100%;
 }
 
-/* Form styles */
-.login-form {
-  width: 100%;
+@keyframes scale-up {
+  0% {
+    transform: scale(0.9);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
 }
 
 /* Title styling */
@@ -30,22 +44,19 @@
   color: #333;
   text-align: center;
   margin-bottom: 1.5rem;
+  animation: fade-in 1s ease;
 }
 
-/* Form group styling */
-.form-group {
-  margin-bottom: 1.25rem;
+@keyframes fade-in {
+  0% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
+  }
 }
 
-.form-group label {
-  display: block;
-  margin-bottom: 8px;
-  font-size: 1rem;
-  font-weight: bold;
-  color: #555;
-}
-
-/* Input field styling */
+/* Form group and input styling */
 .form-group input {
   width: 100%;
   padding: 12px;
@@ -58,10 +69,11 @@
 .form-group input:focus {
   border-color: #ff4b2b;
   box-shadow: 0 0 8px rgba(255, 75, 43, 0.3);
+  transform: scale(1.02);
   outline: none;
 }
 
-/* Login button styling */
+/* Animated button */
 .login-button {
   width: 100%;
   padding: 12px;
@@ -76,7 +88,23 @@
 
 .login-button:hover {
   background: linear-gradient(to right, #ff4b2b, #ff416c);
-  transform: translateY(-3px);
+  transform: translateY(-5px) scale(1.05);
+}
+
+/* Error message with fade-in */
+.error-message {
+  color: red;
+  text-align: center;
+  margin-bottom: 1rem;
+  font-size: 0.875rem;
+  animation: fade-in 0.5s ease;
+}
+
+/* Google Login Button Styling */
+.google-login-btn {
+  margin-top: 20px;
+  display: flex;
+  justify-content: center;
 }
 
 /* Switch link styling */
@@ -89,18 +117,12 @@
   color: #ff4b2b;
   text-decoration: none;
   font-weight: bold;
+  transition: color 0.3s ease;
 }
 
 .switch-link a:hover {
+  color: #ff416c;
   text-decoration: underline;
-}
-
-/* Error message styling */
-.error-message {
-  color: red;
-  text-align: center;
-  margin-bottom: 1rem;
-  font-size: 0.875rem;
 }
 
 /* Slide-in animation for form */

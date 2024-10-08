@@ -1,11 +1,25 @@
-import React, { useState } from "react";
+import React, { useState,useEffect } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import { FaArrowRight } from "react-icons/fa";
 import { IoMdArrowBack } from "react-icons/io";
 import ChatSidebar from "../SideBar";
-import { updateFile } from "../../store/slices/userSlice";
+import { updateColumnType, updateFile } from "../../store/slices/userSlice";
 import { DragDropContext, Draggable, Droppable } from "react-beautiful-dnd";
 import "./index.css";
+
+
+// Utility function to calculate Q1, Q3, and IQR
+const quantiles = (data) => {
+  const sortedData = [...data].sort((a, b) => a - b);
+  const n = sortedData.length;
+
+  const Q1 = sortedData[Math.floor((n / 4))];
+  const Q3 = sortedData[Math.floor((3 * n) / 4)];
+  const IQR = Q3 - Q1;
+
+  return { Q1, Q3, IQR };
+};
+
 
 // detecting outliers through z-score  (observed value-mean of sample)/standard deviation of sample
 const detectOutliers = (data, column) => {
@@ -39,9 +53,6 @@ const ETLModule = (props) => {
     },
     { type: "bot", text: "Please select an option from the dropdown below." },
   ]);
-  const [filteredContent, setFilteredContent] = useState(
-    file ? file.content : []
-  );
   const [awaitingTypeChange, setAwaitingTypeChange] = useState(false);
   const [awaitingColumnInput, setAwaitingColumnInput] = useState(false);
   const [outliers, setOutliers] = useState([]);
@@ -55,6 +66,31 @@ const ETLModule = (props) => {
   
   const dispatch = useDispatch();
 
+  const [table, setTable] = useState(file.content);
+
+  useEffect(() => {
+    // Function to add the index column
+    const addIndexColumn = (data) => {
+      return data.map((row, index) => ({
+        index: index + 1, // Index starts at 1
+        ...row,
+      }));
+    };
+
+    // Update table with the new index column
+    const tableWithIndex = addIndexColumn(file.content);
+    setTable(tableWithIndex);
+  },[file.name]);
+
+
+  dispatch(updateFile({ name: file.name, content: table }));
+
+
+  const [filteredContent, setFilteredContent] = useState(
+    table ? table : []
+  );
+
+
   const moveToAnalysisBtn = () => {
     const { history } = props;
     history.push("/view");
@@ -66,10 +102,6 @@ const ETLModule = (props) => {
   };
 
   const handleExit = () => {
-    // Dispatch the updated content to the Redux store before exiting
-    dispatch(updateFile(file.name, filteredContent));
-
-    // Close the chat and any other cleanup (if needed)
     setIsChatOpen(false);
   };
 
@@ -115,11 +147,12 @@ const ETLModule = (props) => {
           finalMessage = "Columns scaled.";
 
           setFilteredContent(scaledContent);
+          setTable(scaledContent)
           setAwaitingColumnInput(false);
           setScalingColumns(false);
 
-          dispatch(updateFile(file.name, scaledContent));
-          console.log(`Scaled - ${file}`)
+
+          dispatch(updateFile({ name: file.name, content: table }));
 
           setMessages((prevMessages) => [
             ...prevMessages,
@@ -162,7 +195,7 @@ const ETLModule = (props) => {
         setFilteredContent(updatedContent);
         setAwaitingColumnInput(false);
 
-        dispatch(updateFile(file.name, updatedContent));
+        dispatch(updateColumnType({ name: file.name, columnName: columnName, newType: dtype}));
         console.log(`Changing dtype - ${file}`)
       } else {
         finalMessage = "Invalid format. Please write it as - {column name} : {dtype:}.";
@@ -198,18 +231,20 @@ const ETLModule = (props) => {
           text: "If you want to change the data type of any column, write it as - {column name} : {dtype:}, or type 'no' to skip."
         }
       ]);
-    } else if (message === "Handle NA") {
-      initialMessage = "Handling NA values...";
+    } else if (message === "Remove NA/Null/Empty Values") {
+      initialMessage = "Remove NA/Null/Empty values...";
 
       updatedContent = updatedContent.filter(row => {
         const hasNull = Object.values(row).some(value => value === null || value === "");
         return !hasNull;
       });
 
-      finalMessage = updatedContent.length < filteredContent.length ? "Great! Null values handled." : "No null values present.";
+      finalMessage = updatedContent.length < filteredContent.length ? "Great! Removed NA/Null/Empty Values." : "No null values present.";
 
       setFilteredContent(updatedContent);
-      dispatch(updateFile({ name: file.name, content: updatedContent }));
+      setTable(updatedContent)
+      dispatch(updateFile({ name: file.name, content: table }));
+      console.log(updatedContent)
 
       setMessages((prevMessages) => [
         ...prevMessages,
@@ -234,7 +269,8 @@ const ETLModule = (props) => {
       finalMessage = updatedContent.length < filteredContent.length ? "Great! Duplicates removed." : "No duplicates found.";
 
       setFilteredContent(updatedContent);
-      dispatch(updateFile({ name: file.name, content: updatedContent }));
+      setTable(updatedContent)
+      dispatch(updateFile({ name: file.name, content: table }));
 
       setMessages((prevMessages) => [
         ...prevMessages,
@@ -242,74 +278,78 @@ const ETLModule = (props) => {
         { type: "bot", text: finalMessage },
         { type: "bot", text: "Please select an option from the dropdown below." }
       ]);
-    } else if (message === "Remove Outliers") {
+    }  
+    // Instead of removing outliers, you can cap them at a certain threshold: 
+     else if (message === "Remove Outliers") {
       initialMessage = "Detecting outliers in the data...";
       const columnsWithOutliers = {};
-
+  
+      // Detect outliers in each column
       columns.forEach(col => {
-        const outliersInColumn = detectOutliers(filteredContent, col);
-        if (outliersInColumn.length > 0) {
-          columnsWithOutliers[col] = outliersInColumn;
-        }
+          const values = filteredContent.map(row => row[col]).filter(v => typeof v === 'number'); // Get numerical values
+          const { Q1, Q3, IQR } = quantiles(values); // Get Q1, Q3, IQR
+          const threshold_high = Q3 + 1.5 * IQR;
+          const threshold_low = Q1 - 1.5 * IQR;
+  
+          const outliersInColumn = values.filter(value => value < threshold_low || value > threshold_high);
+          if (outliersInColumn.length > 0) {
+              columnsWithOutliers[col] = outliersInColumn;
+          }
       });
-
+  
       if (Object.keys(columnsWithOutliers).length > 0) {
-        const outlierMessages = Object.entries(columnsWithOutliers).map(([col, outliers]) => {
-          return `Column: ${col}, Outliers: ${outliers.join(", ")}`;
-        });
-
-        setOutliers(columnsWithOutliers);
-        setAwaitingOutlierConfirmation(true);
-
-        setMessages((prevMessages) => [
-          ...prevMessages,
-          { type: "bot", text: initialMessage },
-          ...outlierMessages.map(msg => ({ type: "bot", text: msg })),
-          { type: "bot", text: "Do you want to remove these outliers? Type 'yes' to remove or 'no' to skip." }
-        ]);
+          setAwaitingOutlierConfirmation(true);
+          setOutliers(columnsWithOutliers); // Store outliers for later use
+  
+          const outlierMessages = Object.entries(columnsWithOutliers).map(([col, outliers]) => {
+              return `Column: ${col}, Outliers: ${outliers.join(", ")}`;
+          });
+  
+          setMessages((prevMessages) => [
+              ...prevMessages,
+              { type: "bot", text: initialMessage },
+              ...outlierMessages.map(msg => ({ type: "bot", text: msg })),
+              { type: "bot", text: "Capping the outliers..." }
+          ]);
+  
+          // Cap outliers
+          const cappedContent = filteredContent.map(row => {
+              const newRow = { ...row };
+              columns.forEach(col => {
+                  if (newRow[col] !== undefined) {
+                      const values = filteredContent.map(r => r[col]).filter(v => typeof v === 'number');
+                      const { Q1, Q3, IQR } = quantiles(values);
+                      const threshold_high = Q3 + 1.5 * IQR;
+                      const threshold_low = Q1 - 1.5 * IQR;
+  
+                      // Only cap if the column is numeric
+                      if (typeof newRow[col] === 'number') {
+                          newRow[col] = Math.min(Math.max(newRow[col], threshold_low), threshold_high);
+                      }
+                  }
+              });
+              return newRow;
+          });
+  
+          setFilteredContent(cappedContent);
+          setTable(cappedContent);
+          dispatch(updateFile({ name: file.name, content: table }));
+  
+          // Notify user that outliers have been capped
+          setMessages((prevMessages) => [
+              ...prevMessages,
+              { type: "bot", text: "Outliers have been capped." },
+              { type: "bot", text: "Please select an option from the dropdown below." }
+          ]);
       } else {
-        setMessages((prevMessages) => [
-          ...prevMessages,
-          { type: "bot", text: "No outliers detected in the data." },
-          { type: "bot", text: "Please select an option from the dropdown below." }
-        ]);
+          setMessages((prevMessages) => [
+              ...prevMessages,
+              { type: "bot", text: "No outliers detected in the data." },
+              { type: "bot", text: "Please select an option from the dropdown below." }
+          ]);
       }
-    } else if (awaitingOutlierConfirmation) {
-      if (message.toLowerCase() === "yes") {
-        initialMessage = "Removing outliers from the data...";
-        updatedContent = filteredContent.filter(row => {
-          return !Object.keys(outliers).some(col => outliers[col].includes(row[col]));
-        });
-
-        finalMessage = "Outliers removed.";
-
-        setFilteredContent(updatedContent);
-        setOutliers([]);
-        setAwaitingOutlierConfirmation(false);
-
-        dispatch(updateFile({ name: file.name, content: updatedContent }));
-      
-
-        setMessages((prevMessages) => [
-          ...prevMessages,
-          { type: "bot", text: initialMessage },
-          { type: "bot", text: finalMessage },
-          { type: "bot", text: "Please select an option from the dropdown below." }
-        ]);
-      } else if (message.toLowerCase() === "no") {
-        setAwaitingOutlierConfirmation(false);
-        setMessages((prevMessages) => [
-          ...prevMessages,
-          { type: "bot", text: "Outliers not removed." },
-          { type: "bot", text: "Please select an option from the dropdown below." }
-        ]);
-      } else {
-        setMessages((prevMessages) => [
-          ...prevMessages,
-          { type: "bot", text: "Invalid input. Please type 'yes' or 'no'." }
-        ]);
-      }
-    } else if (message === "Scale Columns") {
+  }
+   else if (message === "Scale Columns") {
       initialMessage = "Listing numerical columns for scaling...";
       const numericalCols = columns.filter(col => {
         return filteredContent.every(row => typeof row[col] === 'number');
@@ -329,7 +369,8 @@ const ETLModule = (props) => {
           { type: "bot", text: "Please enter the names of the columns you want to scale, separated by commas." }
         ]);
 
-        dispatch(updateFile({ name: file.name, content: updatedContent }));
+        setTable(updatedContent)
+      dispatch(updateFile({ name: file.name, content: table }));
       
 
         setAwaitingColumnInput(true);
@@ -341,6 +382,9 @@ const ETLModule = (props) => {
           { type: "bot", text: "Please select an option from the dropdown below." }
         ]);
       }
+    }
+    else if (message==='Exit'){
+      handleExit();
     } else {
       setMessages((prevMessages) => [
         ...prevMessages,
@@ -356,9 +400,8 @@ const ETLModule = (props) => {
   
     // Update the local state with the new content
     setFilteredContent(updatedContent);
-  
-    // Dispatch the updated content to Redux
-    dispatch(updateFile(file.name, updatedContent));
+    setTable(updatedContent)
+    dispatch(updateFile({ name: file.name, content: table }));
   };
 
   const handleCellChange = (rowIndex, fieldName, newValue) => {
@@ -376,6 +419,9 @@ const ETLModule = (props) => {
   
     // Set the state with the new data
     setFilteredContent(updatedData);
+    console.log(table)
+    setTable(updatedData)
+    dispatch(updateFile({ name: file.name, content: table }));
   };
   
   
@@ -388,29 +434,10 @@ const ETLModule = (props) => {
     newFilteredContent.splice(result.destination.index, 0, movedRow);
 
     setFilteredContent(newFilteredContent);
-    dispatch(updateFile(file.name, newFilteredContent));
+    setTable(newFilteredContent)
+      dispatch(updateFile({ name: file.name, content: table }));
   };
 
-  const handleColumnDragEnd = (result) => {
-    if (!result.destination) return;
-
-    const newColumns = Array.from(columns);
-    const [movedColumn] = newColumns.splice(result.source.index, 1);
-    newColumns.splice(result.destination.index, 0, movedColumn);
-
-    const newFilteredContent = filteredContent.map((row) => {
-      const newRow = {};
-      newColumns.forEach((col) => {
-        newRow[col] = row[col];
-      });
-      return newRow;
-    });
-
-    setColumns(newColumns);
-    setFilteredContent(newFilteredContent);
-
-    dispatch(updateFile(file.name, newFilteredContent));
-  };
 
   return (
     <div className="etl-module-container">
@@ -449,6 +476,7 @@ const ETLModule = (props) => {
                   <table className="file-table" ref={provided.innerRef} {...provided.droppableProps}>
                     <thead>
                       <tr>
+                      <th>Index</th>
                         {columns.map((col, index) => (
                           <th key={col}>{col}</th>
                         ))}
@@ -459,7 +487,8 @@ const ETLModule = (props) => {
                       {filteredContent.map((row, rowIndex) => (
                         <Draggable key={rowIndex} draggableId={`row-${rowIndex}`} index={rowIndex}>
                           {(provided) => (
-                            <tr ref={provided.innerRef} {...provided.draggableProps} {...provided.dragHandleProps}>
+                            <tr key={rowIndex} ref={provided.innerRef} {...provided.draggableProps} {...provided.dragHandleProps}>
+                              <td>{rowIndex}</td>
                               {columns.map((col) => (
                                 <td key={col}>
                                   <input
@@ -508,7 +537,7 @@ const ETLModule = (props) => {
           onClose={() => setIsChatOpen(false)}
           onSend={handleSendMessage}
           options={[
-            "Handle NA",
+            "Remove NA/Null/Empty Values",
             "Remove Duplicates",
             "Show Info About Columns",
             "Remove Outliers",

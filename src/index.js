@@ -6,12 +6,15 @@ import reportWebVitals from './reportWebVitals';
 import { Provider } from 'react-redux';
 import store from './store';
 import DndProviderWrapper from '../src/components/DndProvider'
+import { GoogleOAuthProvider } from '@react-oauth/google';
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(
   <Provider store={store}>
     <DndProviderWrapper>
+    <GoogleOAuthProvider clientId="126973402830-785076tqj7sq62ahujsmdv2egm0fojtd.apps.googleusercontent.com">
     <App />
+    </GoogleOAuthProvider>
     </DndProviderWrapper>
   </Provider>
 );
