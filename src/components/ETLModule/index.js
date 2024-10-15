@@ -62,6 +62,13 @@ const ETLModule = (props) => {
   const [scalingColumns, setScalingColumns] = useState(false);
   const [numericalColumns, setNumericalColumns] = useState([]);
   const [awaitingOutlierColumns, setAwaitingOutlierColumns] = useState(false);
+  const [
+    awaitingNullDeletionConfirmation,
+    setAwaitingNullDeletionConfirmation,
+  ] = useState(false);
+  const [nullRows, setNullRows] = useState([]);
+  const [highlightedRows, setHighlightedRows] = useState([]);
+
 
   const dispatch = useDispatch();
 
@@ -113,150 +120,220 @@ const ETLModule = (props) => {
   const handleSendMessage = async (message) => {
     let updatedContent = [...filteredContent];
     let initialMessage = "";
-let finalMessage = "";
+    let finalMessage = "";
 
-// Log the user input
-setMessages((prevMessages) => [
-  ...prevMessages,
-  { type: "user", text: message },
-]);
-
-if (awaitingOutlierConfirmation) {
-  if (message.toLowerCase() === "yes") {
-    // Prompt for column names to remove outliers
+    // Log the user input
     setMessages((prevMessages) => [
       ...prevMessages,
-      {
-        type: "bot",
-        text: "Type the name of the columns separated by spaces according to which you want to remove outliers, or type 'all' to remove outliers from all columns.",
-      },
+      { type: "user", text: message },
     ]);
 
-    setAwaitingOutlierColumns(true); // Switch to the column input phase
-    setAwaitingOutlierConfirmation(false); // Exit the outlier confirmation state
-  } else if (message.toLowerCase() === "no") {
-    finalMessage = "Outliers were not removed.";
-    setAwaitingOutlierConfirmation(false);
+    // Handle null/empty row deletion confirmation
+    if (awaitingNullDeletionConfirmation) {
+      if (message.toLowerCase() === "yes") {
+        // User confirmed to delete rows with null/empty values
+        const updatedContentWithoutNulls = updatedContent.filter((row) => {
+          return !Object.values(row).some(
+            (value) => value === null || value === ""
+          );
+        });
 
-    setMessages((prevMessages) => [
-      ...prevMessages,
-      { type: "bot", text: finalMessage },
-      {
-        type: "bot",
-        text: "Please select an option from the dropdown below.",
-      },
-    ]);
+        finalMessage = "Rows with null/empty values have been deleted.";
 
-    setOutliers({}); // Reset outliers after processing
-  } else {
-    finalMessage = "Invalid input. Please type 'yes' or 'no'.";
-    setAwaitingOutlierConfirmation(true); // Stay in outlier confirmation state
-    setMessages((prevMessages) => [
-      ...prevMessages,
-      { type: "bot", text: finalMessage },
-    ]);
-  }
+        setFilteredContent(updatedContentWithoutNulls);
+        setTable(updatedContentWithoutNulls);
+        dispatch(
+          updateFile({ name: file.name, content: updatedContentWithoutNulls })
+        );
 
-  return; // Exit the function after handling outliers
-}
-
-if (awaitingOutlierColumns) {
-  const input = message.toLowerCase().trim();
-
-  if (input === "all") {
-    initialMessage = "Removing outliers from all columns...";
-
-    // Remove rows that contain outliers in any column
-    const updatedContentWithoutOutliers = filteredContent.filter((row) => {
-      return !columns.some((col) => {
-        return outliers[col] && outliers[col].includes(row[col]);
-      });
-    });
-
-    console.log("Updated Content Without Outliers (All):", updatedContentWithoutOutliers);
-
-    setFilteredContent(updatedContentWithoutOutliers);
-    setTable(updatedContentWithoutOutliers);
-    dispatch(
-      updateFile({
-        name: file.name,
-        content: updatedContentWithoutOutliers,
-      })
-    );
-
-    finalMessage = "Outliers removed from all columns.";
-  } else {
-    // Split the user input to get selected column names
-    const selectedColumns = input.split(" ").map((col) => col.trim());
-    initialMessage = `Removing outliers from the columns: ${selectedColumns.join(", ")}`;
-    console.log(`Selected columns : ${selectedColumns}`)
-
-    // Remove rows that contain outliers in the specified columns
-    const updatedContentWithoutOutliers = filteredContent.filter((row) => {
-      let keepRow = true;
-    
-      console.log("Current Row:", row);
-    
-      // Normalize selectedColumns to lower case for comparison
-      const normalizedSelectedColumns = selectedColumns.map(col => col.toLowerCase());
-    
-      for (const col of normalizedSelectedColumns) {
-        // Normalize actual column names in outliers and row for comparison
-        const actualCol = Object.keys(outliers).find(key => key.toLowerCase() === col);
-    
-        if (actualCol && row[actualCol] !== undefined) {
-          const cellValue = String(row[actualCol]).trim();
-          const outlierValues = outliers[actualCol].map(value => String(value).trim());
-    
-          console.log(`Checking Column: ${actualCol}`);
-          console.log(`Cell Value: '${cellValue}'`);
-          console.log(`Outlier Values: ${outlierValues}`);
-    
-          if (outlierValues.includes(cellValue)) {
-            keepRow = false; 
-            console.log(`Row excluded due to outlier in column '${actualCol}': ${cellValue}`);
-            break; 
-          }
-        } else {
-          console.log(`Column '${col}' does not exist in outliers or row.`);
-        }
+        setMessages((prevMessages) => [
+          ...prevMessages,
+          { type: "bot", text: finalMessage },
+          {
+            type: "bot",
+            text: "Please select an option from the dropdown below.",
+          },
+        ]);
+      } else if (message.toLowerCase() === "no") {
+        // User opted not to delete the rows
+        finalMessage = "Rows with null/empty values were not deleted.";
+        setMessages((prevMessages) => [
+          ...prevMessages,
+          { type: "bot", text: finalMessage },
+          {
+            type: "bot",
+            text: "Please select an option from the dropdown below.",
+          },
+        ]);
+      } else {
+        // Invalid input, stay in the confirmation state
+        finalMessage = "Invalid input. Please type 'yes' or 'no'.";
+        setMessages((prevMessages) => [
+          ...prevMessages,
+          { type: "bot", text: finalMessage },
+        ]);
+        return; // Exit function to wait for valid input
       }
-    
-      return keepRow; 
-    });
-    
-    // Logging the filtered content
-    console.log("Updated Content Without Outliers:", updatedContentWithoutOutliers);
-    
-    // Update state and dispatch the action
-    setFilteredContent(updatedContentWithoutOutliers);
-    setTable(updatedContentWithoutOutliers);
-    dispatch(
-      updateFile({
-        name: file.name,
-        content: updatedContentWithoutOutliers,
-      })
-    );
 
-    finalMessage = `Outliers removed from columns: ${selectedColumns.join(", ")}.`;
-  }
+      // Reset confirmation state after handling
+      setAwaitingNullDeletionConfirmation(false);
+      setNullRows([]); // Reset nullRows state
+      return;
+    }
 
-  // Send bot messages
-  setMessages((prevMessages) => [
-    ...prevMessages,
-    { type: "bot", text: initialMessage },
-    { type: "bot", text: finalMessage },
-    {
-      type: "bot",
-      text: "Please select an option from the dropdown below.",
-    },
-  ]);
+    if (awaitingOutlierConfirmation) {
+      if (message.toLowerCase() === "yes") {
+        // Prompt for column names to remove outliers
+        setMessages((prevMessages) => [
+          ...prevMessages,
+          {
+            type: "bot",
+            text: "Type the name of the columns separated by spaces according to which you want to remove outliers, or type 'all' to remove outliers from all columns.",
+          },
+        ]);
 
-  setOutliers({}); // Reset outliers after processing
-  setAwaitingOutlierColumns(false); // Exit the outlier column input state
-  return;
-}
+        setAwaitingOutlierColumns(true); // Switch to the column input phase
+        setAwaitingOutlierConfirmation(false); // Exit the outlier confirmation state
+      } else if (message.toLowerCase() === "no") {
+        finalMessage = "Outliers were not removed.";
+        setAwaitingOutlierConfirmation(false);
 
+        setMessages((prevMessages) => [
+          ...prevMessages,
+          { type: "bot", text: finalMessage },
+          {
+            type: "bot",
+            text: "Please select an option from the dropdown below.",
+          },
+        ]);
+
+        setOutliers({}); // Reset outliers after processing
+      } else {
+        finalMessage = "Invalid input. Please type 'yes' or 'no'.";
+        setAwaitingOutlierConfirmation(true); // Stay in outlier confirmation state
+        setMessages((prevMessages) => [
+          ...prevMessages,
+          { type: "bot", text: finalMessage },
+        ]);
+      }
+
+      return; // Exit the function after handling outliers
+    }
+
+    if (awaitingOutlierColumns) {
+      const input = message.toLowerCase().trim();
+
+      if (input === "all") {
+        initialMessage = "Removing outliers from all columns...";
+
+        // Remove rows that contain outliers in any column
+        const updatedContentWithoutOutliers = filteredContent.filter((row) => {
+          return !columns.some((col) => {
+            return outliers[col] && outliers[col].includes(row[col]);
+          });
+        });
+
+        console.log(
+          "Updated Content Without Outliers (All):",
+          updatedContentWithoutOutliers
+        );
+
+        setFilteredContent(updatedContentWithoutOutliers);
+        setTable(updatedContentWithoutOutliers);
+        dispatch(
+          updateFile({
+            name: file.name,
+            content: updatedContentWithoutOutliers,
+          })
+        );
+
+        finalMessage = "Outliers removed from all columns.";
+      } else {
+        // Split the user input to get selected column names
+        const selectedColumns = input.split(" ").map((col) => col.trim());
+        initialMessage = `Removing outliers from the columns: ${selectedColumns.join(
+          ", "
+        )}`;
+        console.log(`Selected columns : ${selectedColumns}`);
+
+        // Remove rows that contain outliers in the specified columns
+        const updatedContentWithoutOutliers = filteredContent.filter((row) => {
+          let keepRow = true;
+
+          console.log("Current Row:", row);
+
+          // Normalize selectedColumns to lower case for comparison
+          const normalizedSelectedColumns = selectedColumns.map((col) =>
+            col.toLowerCase()
+          );
+
+          for (const col of normalizedSelectedColumns) {
+            // Normalize actual column names in outliers and row for comparison
+            const actualCol = Object.keys(outliers).find(
+              (key) => key.toLowerCase() === col
+            );
+
+            if (actualCol && row[actualCol] !== undefined) {
+              const cellValue = String(row[actualCol]).trim();
+              const outlierValues = outliers[actualCol].map((value) =>
+                String(value).trim()
+              );
+
+              console.log(`Checking Column: ${actualCol}`);
+              console.log(`Cell Value: '${cellValue}'`);
+              console.log(`Outlier Values: ${outlierValues}`);
+
+              if (outlierValues.includes(cellValue)) {
+                keepRow = false;
+                console.log(
+                  `Row excluded due to outlier in column '${actualCol}': ${cellValue}`
+                );
+                break;
+              }
+            } else {
+              console.log(`Column '${col}' does not exist in outliers or row.`);
+            }
+          }
+
+          return keepRow;
+        });
+
+        // Logging the filtered content
+        console.log(
+          "Updated Content Without Outliers:",
+          updatedContentWithoutOutliers
+        );
+
+        // Update state and dispatch the action
+        setFilteredContent(updatedContentWithoutOutliers);
+        setTable(updatedContentWithoutOutliers);
+        dispatch(
+          updateFile({
+            name: file.name,
+            content: updatedContentWithoutOutliers,
+          })
+        );
+
+        finalMessage = `Outliers removed from columns: ${selectedColumns.join(
+          ", "
+        )}.`;
+      }
+
+      // Send bot messages
+      setMessages((prevMessages) => [
+        ...prevMessages,
+        { type: "bot", text: initialMessage },
+        { type: "bot", text: finalMessage },
+        {
+          type: "bot",
+          text: "Please select an option from the dropdown below.",
+        },
+      ]);
+
+      setOutliers({}); // Reset outliers after processing
+      setAwaitingOutlierColumns(false); // Exit the outlier column input state
+      return;
+    }
 
     if (awaitingColumnInput) {
       if (message.toLowerCase() === "no") {
@@ -398,118 +475,48 @@ if (awaitingOutlierColumns) {
         },
       ]);
     } else if (message === "Remove NA/Null/Empty Values") {
-      initialMessage = "Remove NA/Null/Empty values...";
+  initialMessage = "Checking for rows with null/empty values...";
 
-      updatedContent = updatedContent.filter((row) => {
-        const hasNull = Object.values(row).some(
-          (value) => value === null || value === ""
-        );
-        return !hasNull;
-      });
+  // Identify rows with null or empty values
+  const rowsWithNulls = filteredContent.filter((row) => {
+    return Object.values(row).some(
+      (value) => value === null || value === ""
+    );
+  });
 
-      finalMessage =
-        updatedContent.length < filteredContent.length
-          ? "Great! Removed NA/Null/Empty Values."
-          : "No null values present.";
+  if (rowsWithNulls.length > 0) {
+    const nullRowIndices = rowsWithNulls.map((_, index) => index);  // Store indices of rows with null values
+    setNullRows(rowsWithNulls); // Store rows with nulls
+    setHighlightedRows(nullRowIndices);  // Highlight rows with nulls
+    setAwaitingNullDeletionConfirmation(true); // Set state to wait for confirmation
 
-      setFilteredContent(updatedContent);
-      setTable(updatedContent);
-      dispatch(updateFile({ name: file.name, content: table }));
+    // Show the rows with null/empty values in chat
+    const nullRowMessages = rowsWithNulls.map(
+      (row, index) => `Row ${index + 1}: ${JSON.stringify(row)}`
+    );
+    finalMessage = `Found ${rowsWithNulls.length} rows with null/empty values. Do you want to delete them? Type 'yes' or 'no'.`;
 
-      setMessages((prevMessages) => [
-        ...prevMessages,
-        { type: "bot", text: initialMessage },
-        { type: "bot", text: finalMessage },
-        {
-          type: "bot",
-          text: "Please select an option from the dropdown below.",
-        },
-      ]);
-    } else if (message === "Remove Duplicates") {
-      initialMessage = "Removing duplicate rows...";
-
-      const uniqueContent = new Set();
-      updatedContent = updatedContent.filter((row) => {
-        const rowString = JSON.stringify(row);
-        if (uniqueContent.has(rowString)) {
-          return false;
-        } else {
-          uniqueContent.add(rowString);
-          return true;
-        }
-      });
-
-      finalMessage =
-        updatedContent.length < filteredContent.length
-          ? "Great! Duplicates removed."
-          : "No duplicates found.";
-
-      setFilteredContent(updatedContent);
-      setTable(updatedContent);
-      dispatch(updateFile({ name: file.name, content: table }));
-
-      setMessages((prevMessages) => [
-        ...prevMessages,
-        { type: "bot", text: initialMessage },
-        { type: "bot", text: finalMessage },
-        {
-          type: "bot",
-          text: "Please select an option from the dropdown below.",
-        },
-      ]);
-    }
-    // Instead of removing outliers, you can cap them at a certain threshold:
-    else if (message === "Remove Outliers") {
-      initialMessage = "Detecting outliers in the data...";
-      const columnsWithOutliers = {};
-
-      // Detect outliers in each column
-      columns.forEach((col) => {
-        const values = filteredContent
-          .map((row) => row[col])
-          .filter((v) => typeof v === "number"); // Get numerical values
-        const { Q1, Q3, IQR } = quantiles(values); // Get Q1, Q3, IQR
-        const threshold_high = Q3 + 1.5 * IQR;
-        const threshold_low = Q1 - 1.5 * IQR;
-
-        const outliersInColumn = values.filter(
-          (value) => value < threshold_low || value > threshold_high
-        );
-        if (outliersInColumn.length > 0) {
-          columnsWithOutliers[col] = outliersInColumn;
-        }
-      });
-
-      if (Object.keys(columnsWithOutliers).length > 0) {
-        setAwaitingOutlierConfirmation(true);
-        setOutliers(columnsWithOutliers); // Store outliers for later use
-
-        const outlierMessages = Object.entries(columnsWithOutliers).map(
-          ([col, outliers]) => {
-            return `Column: ${col}, Outliers: ${outliers.join(", ")}`;
-          }
-        );
-
-        setMessages((prevMessages) => [
-          ...prevMessages,
-          { type: "bot", text: initialMessage },
-          ...outlierMessages.map((msg) => ({ type: "bot", text: msg })),
-          {
-            type: "bot",
-            text: "Outliers are highlighted. Do you want to remove them? Type 'yes' or 'no'.",
-          },
-        ]);
-      } else {
-        setMessages((prevMessages) => [
-          ...prevMessages,
-          { type: "bot", text: "No outliers detected in the data." },
-          {
-            type: "bot",
-            text: "Please select an option from the dropdown below.",
-          },
-        ]);
-      }
-    } else if (message === "Scale Columns") {
+    setMessages((prevMessages) => [
+      ...prevMessages,
+      { type: "bot", text: initialMessage },
+      ...nullRowMessages.map((msg) => ({ type: "bot", text: msg })),
+      { type: "bot", text: finalMessage },
+    ]);
+  } else {
+    // No null values found
+    finalMessage = "No rows with null/empty values found.";
+    setMessages((prevMessages) => [
+      ...prevMessages,
+      { type: "bot", text: finalMessage },
+      {
+        type: "bot",
+        text: "Please select an option from the dropdown below.",
+      },
+    ]);
+  }
+  return; // Exit to wait for user confirmation
+}
+ else if (message === "Scale Columns") {
       initialMessage = "Listing numerical columns for scaling...";
       const numericalCols = columns.filter((col) => {
         return filteredContent.every((row) => typeof row[col] === "number");
@@ -763,6 +770,7 @@ if (awaitingOutlierColumns) {
           awaitingTypeChange={awaitingTypeChange}
           awaitingOutlierConfirmation={awaitingOutlierConfirmation}
           awaitingOutlierColumns={awaitingOutlierColumns}
+          awaitingNullDeletionConfirmation={awaitingNullDeletionConfirmation}
         />
       )}
     </div>

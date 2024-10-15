@@ -12,10 +12,14 @@ const InputModule = (props) => {
   const [inputMethod, setInputMethod] = useState("");
   const [sampleDatabases, setSampleDatabases] = useState([]);
   const [selectedFile, setSelectedFile] = useState("");
+  const [apiUrl, setApiUrl] = useState(""); // State to store the API URL
+  const [isFetching, setIsFetching] = useState(false); // State to manage fetch status
+
   const dispatch = useDispatch();
   const { history } = props;
 
-  const processFile = async (text, filename) => {
+  // Function to process CSV files
+  const processCSVFile = async (text, filename) => {
     return new Promise((resolve) => {
       Papa.parse(text, {
         header: true,
@@ -29,14 +33,41 @@ const InputModule = (props) => {
     });
   };
 
+  // Function to process JSON files
+  const processJSONFile = async (text, filename) => {
+    try {
+      const jsonData = JSON.parse(text);
+      const fileData = { name: filename, content: jsonData };
+      dispatch(addFile(fileData));
+      await saveFileToIndexedDB(fileData);
+    } catch (error) {
+      console.error("Error parsing JSON file:", error);
+      alert("Invalid JSON file format.");
+    }
+  };
+
+  // Function to handle file input
   const onChangeInputFile = async (event) => {
     const file = event.target.files[0];
+    const fileExtension = file.name.split(".").pop().toLowerCase();
+    
     const reader = new FileReader();
     reader.onload = async (e) => {
       const text = e.target.result;
-      await processFile(text, file.name);
-      history.replace("/transform"); // Redirect to transform module
+
+      // Check the file extension and process accordingly
+      if (fileExtension === "csv") {
+        await processCSVFile(text, file.name);
+      } else if (fileExtension === "json") {
+        await processJSONFile(text, file.name);
+      } else {
+        alert("Please upload a valid CSV or JSON file.");
+        return;
+      }
+
+      history.replace("/transform"); // Redirect to transform module after file processing
     };
+
     reader.readAsText(file);
   };
 
@@ -76,7 +107,7 @@ const InputModule = (props) => {
       const reader = new FileReader();
       reader.onload = async (e) => {
         const text = e.target.result;
-        await processFile(text, filename);
+        await processCSVFile(text, filename);
 
         // Redirect to transform module after file processing
         history.replace("/transform");
@@ -84,6 +115,26 @@ const InputModule = (props) => {
       reader.readAsText(blob);
     } catch (error) {
       console.error("Error fetching database file:", error);
+    }
+  };
+
+  const handleApiDataFetch = async () => {
+    setIsFetching(true);
+    try {
+      const response = await fetch(apiUrl);
+      if (!response.ok) {
+        throw new Error("Error fetching data from the API.");
+      }
+      const data = await response.json();
+      const fileData = { name: "API Data", content: data };
+      dispatch(addFile(fileData));
+      await saveFileToIndexedDB(fileData);
+      history.replace("/transform"); // Redirect to transform module
+    } catch (error) {
+      console.error("Error fetching data:", error);
+      alert("Error fetching data from the API. Please check the URL.");
+    } finally {
+      setIsFetching(false);
     }
   };
 
@@ -246,10 +297,12 @@ const InputModule = (props) => {
                 onChange={(e) => setInputMethod(e.target.value)}
               >
                 <option value="">-- Select an option --</option>
-                <option value="upload-yourself">Take Input Yourself</option>
+                <option value="upload-yourself">Take Input Yourself in CSV/JSON file format</option>
                 <option value="import-sample-data">Import Sample Data</option>
+                <option value="fetch-data-from-api">Fetch Data from API</option>
               </select>
             </div>
+
             {inputMethod === "upload-yourself" && (
               <form
                 id="myForm"
@@ -273,6 +326,7 @@ const InputModule = (props) => {
                 </div>
               </form>
             )}
+
             {inputMethod === "import-sample-data" && (
               <div>
                 <h3>Import from Database:</h3>
@@ -292,6 +346,26 @@ const InputModule = (props) => {
                     <option value="">No sample databases available</option>
                   )}
                 </select>
+              </div>
+            )}
+
+            {inputMethod === "fetch-data-from-api" && (
+              <div>
+                <h3>Fetch Data from API</h3>
+                <input
+                  type="text"
+                  value={apiUrl}
+                  onChange={(e) => setApiUrl(e.target.value)}
+                  placeholder="Enter API URL"
+                  className="form-control"
+                />
+                <button
+                  className="btn btn-primary mt-2"
+                  onClick={handleApiDataFetch}
+                  disabled={isFetching}
+                >
+                  {isFetching ? "Fetching..." : "Submit"}
+                </button>
               </div>
             )}
           </div>

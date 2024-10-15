@@ -11,7 +11,8 @@ const ChatSidebar = ({
   awaitingTypeChange,
   awaitingColumnInput,
   awaitingOutlierConfirmation,
-  awaitingOutlierColumns // Add awaitingOutlierColumns prop
+  awaitingOutlierColumns,  // Add awaitingOutlierColumns prop
+  awaitingNullDeletionConfirmation,  // Add awaitingNullDeletionConfirmation prop
 }) => {
   const [input, setInput] = useState("");
   const [dtypeInput, setDtypeInput] = useState(""); // State for dtype input
@@ -27,7 +28,10 @@ const ChatSidebar = ({
     } else if (awaitingOutlierColumns && input.trim()) { // Handle column input for outlier removal
       onSend(input); // Send input when awaiting column names for outliers
       setInput(""); // Clear input field
-    } else if (!awaitingColumnInput && !awaitingOutlierConfirmation && !awaitingOutlierColumns && input.trim()) {
+    } else if (awaitingNullDeletionConfirmation && input.trim()) { // Handle null deletion confirmation
+      onSend(input); // Send yes/no input for null deletion
+      setInput(""); // Clear input field
+    } else if (!awaitingColumnInput && !awaitingOutlierConfirmation && !awaitingOutlierColumns && !awaitingNullDeletionConfirmation && input.trim()) {
       onSend(input); // Send normal input
       setInput(""); // Clear the input field
     }
@@ -78,6 +82,17 @@ const ChatSidebar = ({
               value={input}
               onChange={(e) => setInput(e.target.value)}
               placeholder="Enter column names separated by spaces, or type 'all'"
+              className="chat-text-input"
+            />
+            <button onClick={handleSend}>Send</button>
+          </>
+        ) : awaitingNullDeletionConfirmation ? ( // Check for null deletion confirmation
+          <>
+            <input
+              type="text"
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              placeholder="Type 'yes' or 'no' to confirm null value removal"
               className="chat-text-input"
             />
             <button onClick={handleSend}>Send</button>
