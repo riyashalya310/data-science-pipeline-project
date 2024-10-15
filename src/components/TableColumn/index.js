@@ -16,6 +16,7 @@ const TableColumn = ({ columnName }) => {
       style={{
         opacity: isDragging ? 0.5 : 1,
         cursor: 'move',
+        textAlign:"center"
       }}
     >
       {columnName}

@@ -18,7 +18,6 @@ import {
   Title,
   Tooltip,
   Legend,
-  registerables,
 } from "chart.js";
 import { Bar, Line, Pie, Scatter } from "react-chartjs-2";
 import ChartIcon from "../ChartIcon";
@@ -29,6 +28,7 @@ import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
 import "./index.css";
 import XYColumnSelectionPopup from "../XYColumnSelectionPopup";
+import TableInputPopup from "../TableInputPopup";
 
 // Register the required components for Chart.js
 ChartJS.register(
@@ -55,6 +55,8 @@ const AnalysisModule = () => {
   const [isXYPopupVisible, setIsXYPopupVisible] = useState(false);
   const [chartType, setChartType] = useState("");
   const [mergedTableData, setMergedTableData] = useState(file?.content || []); // State for the merged table
+  const [isTablePopupVisible, setIsTablePopupVisible] = useState(false);
+  const [newTable, setNewTable] = useState({ rows: 0, columns: 0, data: [] });
 
   const aggregateResultsRef = useRef(null);
   const analysisRef = useRef();
@@ -166,135 +168,188 @@ const AnalysisModule = () => {
     setIsXYPopupVisible(false); // Close the popup
   };
 
+  // Function to calculate the frequency of categories in a column
+  const calculateCategoryFrequency = (data) => {
+    const frequencyMap = {};
+    data.forEach((item) => {
+      frequencyMap[item] = (frequencyMap[item] || 0) + 1;
+    });
+    return frequencyMap;
+  };
+
+  const handleTablePopupSubmit = (rows, columns) => {
+    const initialData = Array.from({ length: rows }, () =>
+      Array(columns).fill("")
+    );
+    setNewTable({ rows, columns, data: initialData });
+  };
+
+  const handleTableCellChange = (rowIndex, colIndex, value) => {
+    const updatedData = [...newTable.data];
+    updatedData[rowIndex][colIndex] = value;
+    setNewTable({ ...newTable, data: updatedData });
+  };
+
+  // Function to calculate R-bar values from the data
+  const calculateRBarValues = (data) => {
+    const n = data.length;
+    const xValues = data.map((point) => point.x);
+    const yValues = data.map((point) => point.y);
+
+    // Calculate means
+    const meanX = xValues.reduce((a, b) => a + b, 0) / n;
+    const meanY = yValues.reduce((a, b) => a + b, 0) / n;
+
+    // Calculate covariance and variances
+    let covariance = 0;
+    let varianceX = 0;
+    let varianceY = 0;
+
+    for (let i = 0; i < n; i++) {
+      covariance += (xValues[i] - meanX) * (yValues[i] - meanY);
+      varianceX += Math.pow(xValues[i] - meanX, 2);
+      varianceY += Math.pow(yValues[i] - meanY, 2);
+    }
+
+    covariance /= n;
+    varianceX /= n;
+    varianceY /= n;
+
+    // Calculate R-bar
+    const rBar = covariance / Math.sqrt(varianceX * varianceY);
+    return rBar;
+  };
+
+
   // Render function to render different types of charts
-const renderChart = (chart, index) => {
-  if (!chart.data) return <p>Drop a column here to display the chart</p>;
+  const renderChart = (chart, index) => {
+    if (!chart.data) return <p>Drop a column here to display the chart</p>;
 
-  const indexColumnName = "index"; // Change this to match your index column name
+    const indexColumnName = "index"; // Change this to match your index column name
 
-  // Scatter chart logic for bivariate data
-  if (chart.type === "scatter") {
+    // Scatter chart logic for bivariate data
+    if (chart.type === "scatter") {
       const scatterChartData = {
-          datasets: [
-              {
-                  label: chart.columnName, // This will show `col1 vs col2`
-                  data: chart.data, // Pass {x, y} data for scatter plot
-                  backgroundColor: "rgba(75, 192, 192, 0.6)",
-              },
-          ],
+        datasets: [
+          {
+            label: chart.columnName, // This will show `col1 vs col2`
+            data: chart.data, // Pass {x, y} data for scatter plot
+            backgroundColor: "rgba(75, 192, 192, 0.6)",
+          },
+        ],
       };
 
       const scatterChartOptions = {
-          scales: {
-              x: { type: "linear", position: "bottom" },
-              y: { beginAtZero: true },
-          },
-          maintainAspectRatio: false,
-          plugins: {
-              tooltip: {
-                  callbacks: {
-                      // Display the x and y values on hover
-                      label: (tooltipItem) => {
-                          const xValue = tooltipItem.raw.x;
-                          const yValue = tooltipItem.raw.y;
-                          return `x: ${xValue}, y: ${yValue}`; // Customize to show both x and y values
-                      },
-                  },
+        scales: {
+          x: { type: "linear", position: "bottom" },
+          y: { beginAtZero: true },
+        },
+        maintainAspectRatio: false,
+        plugins: {
+          tooltip: {
+            callbacks: {
+              // Display the x and y values on hover
+              label: (tooltipItem) => {
+                const xValue = tooltipItem.raw.x;
+                const yValue = tooltipItem.raw.y;
+                return `x: ${xValue}, y: ${yValue}`; // Customize to show both x and y values
               },
+            },
           },
+        },
       };
 
       return <Scatter data={scatterChartData} options={scatterChartOptions} />;
-  }
+    }
 
-  // For bar/line charts, pie, etc.
-  const chartData = {
+    // For bar/line charts, pie, etc.
+    const chartData = {
       labels: file.content.map((row) => row[indexColumnName]), // X labels from index
       datasets: [
-          {
-              label: chart.columnName, // For bar/line charts
-              data: Array.isArray(chart.data) && chart.data[0]?.y !== undefined
-                  ? chart.data.map((entry) => entry.y) // For bar/line, extract Y values only
-                  : chart.data,
-              backgroundColor:
-                  chart.type === "pie" || chart.type === "donut"
-                      ? chart.data.map(() => `hsl(${Math.random() * 360}, 70%, 70%)`)
-                      : "rgba(75, 192, 192, 0.6)",
-          },
+        {
+          label: chart.columnName, // For bar/line charts
+          data:
+            Array.isArray(chart.data) && chart.data[0]?.y !== undefined
+              ? chart.data.map((entry) => entry.y) // For bar/line, extract Y values only
+              : chart.data,
+          backgroundColor:
+            chart.type === "pie" || chart.type === "donut"
+              ? chart.data.map(() => `hsl(${Math.random() * 360}, 70%, 70%)`)
+              : "rgba(75, 192, 192, 0.6)",
+        },
       ],
-  };
+    };
 
-  const chartOptions = {
+    const chartOptions = {
       maintainAspectRatio: false,
       plugins: {
-          tooltip: {
-              callbacks: {
-                  // Custom tooltip callback for univariate charts like bar/line
-                  label: (tooltipItem) => {
-                      const label = tooltipItem.dataset.label || "";
-                      const value = tooltipItem.raw;
-                      return `${label}: ${value}`; // Display the label and the corresponding value
-                  },
-              },
+        tooltip: {
+          callbacks: {
+            // Custom tooltip callback for univariate charts like bar/line
+            label: (tooltipItem) => {
+              const label = tooltipItem.dataset.label || "";
+              const value = tooltipItem.raw;
+              return `${label}: ${value}`; // Display the label and the corresponding value
+            },
           },
+        },
       },
-  };
+    };
 
-  switch (chart.type) {
+    switch (chart.type) {
       case "bar":
-          return <Bar data={chartData} options={chartOptions} />;
+        return <Bar data={chartData} options={chartOptions} />;
       case "line":
-          return <Line data={chartData} options={chartOptions} />;
+        return <Line data={chartData} options={chartOptions} />;
       case "pie":
-          return (
-              <Pie
-                  data={chartData}
-                  options={{
-                      ...chartOptions,
-                      plugins: {
-                          legend: { position: "top" },
-                          tooltip: {
-                              callbacks: {
-                                  label: (tooltipItem) =>
-                                      `${tooltipItem.label}: ${tooltipItem.raw}`,
-                              },
-                          },
-                      },
-                  }}
-              />
-          );
+        return (
+          <Pie
+            data={chartData}
+            options={{
+              ...chartOptions,
+              plugins: {
+                legend: { position: "top" },
+                tooltip: {
+                  callbacks: {
+                    label: (tooltipItem) =>
+                      `${tooltipItem.label}: ${tooltipItem.raw}`,
+                  },
+                },
+              },
+            }}
+          />
+        );
       case "area":
-          return (
-              <Line
-                  data={chartData}
-                  options={{ elements: { line: { tension: 0.4 } }, ...chartOptions }}
-              />
-          );
+        return (
+          <Line
+            data={chartData}
+            options={{ elements: { line: { tension: 0.4 } }, ...chartOptions }}
+          />
+        );
       case "donut":
-          return (
-              <Pie
-                  data={chartData}
-                  options={{
-                      ...chartOptions,
-                      plugins: {
-                          legend: { position: "top" },
-                          tooltip: {
-                              callbacks: {
-                                  label: (tooltipItem) =>
-                                      `${tooltipItem.label}: ${tooltipItem.raw}`,
-                              },
-                          },
-                      },
-                      circumference: Math.PI,
-                      rotation: -Math.PI,
-                  }}
-              />
-          );
+        return (
+          <Pie
+            data={chartData}
+            options={{
+              ...chartOptions,
+              plugins: {
+                legend: { position: "top" },
+                tooltip: {
+                  callbacks: {
+                    label: (tooltipItem) =>
+                      `${tooltipItem.label}: ${tooltipItem.raw}`,
+                  },
+                },
+              },
+              circumference: Math.PI,
+              rotation: -Math.PI,
+            }}
+          />
+        );
       default:
-          return <p>No chart type selected</p>;
-  }
-};
-
+        return <p>No chart type selected</p>;
+    }
+  };
 
   const getStringColumns = () => {
     if (
@@ -443,6 +498,14 @@ const renderChart = (chart, index) => {
     }
   };
 
+  const handleCloseTable = () => {
+    setNewTable({
+      rows: 0,
+      columns: 0,
+      data: [],
+    });
+  };
+
   const downloadPDF = () => {
     console.log("download hit");
     const input = analysisRef.current;
@@ -515,6 +578,7 @@ const renderChart = (chart, index) => {
                     <option value="">Select Type of Analysis</option>
                     <option value="univariate">Univariate</option>
                     <option value="bivariate">Bivariate</option>
+                    <option value="categorical">Categorical</option>
                   </select>
                 </div>
               </div>
@@ -583,42 +647,69 @@ const renderChart = (chart, index) => {
                   </div>
 
                   <div className="chart-icons-container">
-                  <h1>Types of Charts :-</h1>
+                    <h1>Types of Charts :-</h1>
                     <div>
-                      <ChartIcon
-                        type="bar"
-                        icon={<MdOutlineStackedBarChart />}
-                        label="Stacked Bar"
-                      />
-                      <ChartIcon type="bar" icon={<FaChartBar />} label="Bar" />
-                      <ChartIcon
-                        type="line"
-                        icon={<AiOutlineLineChart />}
-                        label="Line"
-                      />
-                      <ChartIcon
-                        type="area"
-                        icon={<FaChartArea />}
-                        label="Area"
-                      />
-                      <ChartIcon type="pie" icon={<FaChartPie />} label="Pie" />
-                      <ChartIcon
-                        type="scatter"
-                        icon={<LuScatterChart />}
-                        label="Scatter"
-                      />
-                      <ChartIcon
-                        type="donut"
-                        icon={<RiDonutChartFill />}
-                        label="Donut"
-                      />
+                      {chartType !== "categorical" ? (
+                        <>
+                          <ChartIcon
+                            type="line"
+                            icon={<AiOutlineLineChart />}
+                            label="Line"
+                          />
+                          <ChartIcon
+                            type="bar"
+                            icon={<MdOutlineStackedBarChart />}
+                            label="Stacked Bar"
+                          />
+                          {/* r-bar chart */}
+                          {chartType === "bivariate" ? (
+                            <ChartIcon
+                              type="scatter"
+                              icon={<LuScatterChart />}
+                              label="Scatter"
+                            />
+                          ) : (
+                            <></>
+                          )}
+                          <ChartIcon
+                            type="donut"
+                            icon={<RiDonutChartFill />}
+                            label="Donut"
+                          />
+                          {chartType === "univariate" ? (
+                            <>
+                              <ChartIcon
+                                type="area"
+                                icon={<FaChartArea />}
+                                label="Area"
+                              />
+                              <ChartIcon
+                                type="bar"
+                                icon={<FaChartBar />}
+                                label="Bar"
+                              />
+                            </>
+                          ) : (
+                            <></>
+                          )}
+                        </>
+                      ) : (
+                        <ChartIcon
+                          type="pie"
+                          icon={<FaChartPie />}
+                          label="Pie"
+                        />
+                      )}
                     </div>
                     <h1>Other Options :-</h1>
                     <div className="filter-and-table-container">
                       <div className="filter-container">
                         <FaFilter />
                       </div>
-                      <div className="filter-container">
+                      <div
+                        className="filter-container"
+                        onClick={() => setIsTablePopupVisible(true)}
+                      >
                         <FaTableCells />
                       </div>
                     </div>
@@ -681,6 +772,134 @@ const renderChart = (chart, index) => {
                     onSubmit={handlePopupSubmit}
                     onClose={handlePopupClose}
                   />
+                )}
+
+                {isTablePopupVisible && (
+                  <TableInputPopup
+                    onClose={() => setIsTablePopupVisible(false)}
+                    onSubmit={handleTablePopupSubmit}
+                  />
+                )}
+
+                {newTable.rows > 0 && newTable.columns > 0 && (
+                  <div
+                    className="new-table-container"
+                    style={{
+                      marginTop: "20px",
+                      display: "flex",
+                      flexDirection: "column",
+                      justifyContent: "center",
+                      alignItems: "center",
+                      backgroundColor: "#f9f9f9",
+                      padding: "20px",
+                      borderRadius: "8px",
+                      boxShadow: "0 4px 8px rgba(0, 0, 0, 0.1)",
+                      position: "relative", // Relative for table positioning
+                    }}
+                  >
+                    <div
+                      style={{
+                        position: "relative",
+                        width: "100%",
+                        maxWidth: "600px",
+                      }}
+                    >
+                      <button
+                        onClick={handleCloseTable}
+                        style={{
+                          position: "absolute",
+                          top: "-10px",
+                          right: "-10px",
+                          background: "transparent",
+                          border: "none",
+                          fontSize: "18px",
+                          cursor: "pointer",
+                          color: "#888",
+                          borderRadius: "50%",
+                          width: "30px",
+                          height: "30px",
+                          display: "flex",
+                          justifyContent: "center",
+                          alignItems: "center",
+                          backgroundColor: "#f0f0f0", // Background for better visibility
+                        }}
+                      >
+                        &times;
+                      </button>
+                      <h3
+                        style={{
+                          marginBottom: "15px",
+                          color: "#333",
+                          textAlign: "center",
+                          textDecoration:"underline"
+                        }}
+                      >
+                        New Editable Table
+                      </h3>
+                      <table
+                        style={{
+                          borderCollapse: "collapse",
+                          width: "100%",
+                          maxWidth: "600px",
+                        }}
+                      >
+                        <thead>
+                          <tr>
+                            {Array.from({ length: newTable.columns }).map(
+                              (_, index) => (
+                                <TableColumn
+                                  key={index}
+                                  style={{
+                                    border: "1px solid #ddd",
+                                    padding: "10px",
+                                    textAlign: "center",
+                                    backgroundColor: "#f0f0f0",
+                                    fontWeight: "bold",
+                                  }}
+                                  columnName={`Column ${index + 1}`}
+                                />
+                              )
+                            )}
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {newTable.data.map((row, rowIndex) => (
+                            <tr key={rowIndex}>
+                              {row.map((cell, colIndex) => (
+                                <td
+                                  key={colIndex}
+                                  style={{
+                                    border: "1px solid #ddd",
+                                    padding: "8px",
+                                    textAlign: "center",
+                                  }}
+                                >
+                                  <input
+                                    type="text"
+                                    value={cell}
+                                    onChange={(e) =>
+                                      handleTableCellChange(
+                                        rowIndex,
+                                        colIndex,
+                                        e.target.value
+                                      )
+                                    }
+                                    style={{
+                                      width: "100%",
+                                      padding: "5px",
+                                      border: "1px solid #ccc",
+                                      borderRadius: "4px",
+                                      textAlign: "center",
+                                    }}
+                                  />
+                                </td>
+                              ))}
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
                 )}
 
                 <div className="lower-section" ref={aggregateResultsRef}>
