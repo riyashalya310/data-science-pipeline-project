@@ -168,15 +168,6 @@ const AnalysisModule = () => {
     setIsXYPopupVisible(false); // Close the popup
   };
 
-  // Function to calculate the frequency of categories in a column
-  const calculateCategoryFrequency = (data) => {
-    const frequencyMap = {};
-    data.forEach((item) => {
-      frequencyMap[item] = (frequencyMap[item] || 0) + 1;
-    });
-    return frequencyMap;
-  };
-
   const handleTablePopupSubmit = (rows, columns) => {
     const initialData = Array.from({ length: rows }, () =>
       Array(columns).fill("")
@@ -188,36 +179,6 @@ const AnalysisModule = () => {
     const updatedData = [...newTable.data];
     updatedData[rowIndex][colIndex] = value;
     setNewTable({ ...newTable, data: updatedData });
-  };
-
-  // Function to calculate R-bar values from the data
-  const calculateRBarValues = (data) => {
-    const n = data.length;
-    const xValues = data.map((point) => point.x);
-    const yValues = data.map((point) => point.y);
-
-    // Calculate means
-    const meanX = xValues.reduce((a, b) => a + b, 0) / n;
-    const meanY = yValues.reduce((a, b) => a + b, 0) / n;
-
-    // Calculate covariance and variances
-    let covariance = 0;
-    let varianceX = 0;
-    let varianceY = 0;
-
-    for (let i = 0; i < n; i++) {
-      covariance += (xValues[i] - meanX) * (yValues[i] - meanY);
-      varianceX += Math.pow(xValues[i] - meanX, 2);
-      varianceY += Math.pow(yValues[i] - meanY, 2);
-    }
-
-    covariance /= n;
-    varianceX /= n;
-    varianceY /= n;
-
-    // Calculate R-bar
-    const rBar = covariance / Math.sqrt(varianceX * varianceY);
-    return rBar;
   };
 
 
@@ -526,6 +487,7 @@ const AnalysisModule = () => {
 
   return (
     <>
+      {/* <Header/> */}
       <div className="file-display-analysis" ref={analysisRef}>
         {file ? (
           <div>
@@ -831,7 +793,7 @@ const AnalysisModule = () => {
                           marginBottom: "15px",
                           color: "#333",
                           textAlign: "center",
-                          textDecoration:"underline"
+                          textDecoration: "underline",
                         }}
                       >
                         New Editable Table

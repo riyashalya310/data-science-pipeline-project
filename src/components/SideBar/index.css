@@ -96,3 +96,35 @@
   cursor: pointer;
   font-size: 14px;
 }
+
+
+.chat-images {
+  display: flex;
+  flex-direction: column; /* Stack images vertically */
+}
+
+.chat-image {
+  max-width: 100%; /* Make images responsive */
+  margin: 5px 0; /* Add some spacing between images */
+}
+
+.chat-table-container {
+  overflow-x: auto; /* Enable horizontal scrolling if necessary */
+  max-width: 100%; /* Prevent table from exceeding the width */
+}
+
+.chat-table {
+  width: 100%; /* Ensure the table takes full width */
+  border-collapse: collapse; /* Collapses borders for a cleaner look */
+}
+
+.chat-table th,
+.chat-table td {
+  border: 1px solid #ddd; /* Add border to cells */
+  padding: 8px; /* Add padding for cell content */
+  text-align: left; /* Left-align text for readability */
+}
+
+.chat-table th {
+  background-color: #f0f0f0; /* Light grey background for header */
+}

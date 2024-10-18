@@ -50,7 +50,7 @@ const InputModule = (props) => {
   const onChangeInputFile = async (event) => {
     const file = event.target.files[0];
     const fileExtension = file.name.split(".").pop().toLowerCase();
-    
+
     const reader = new FileReader();
     reader.onload = async (e) => {
       const text = e.target.result;
@@ -138,6 +138,10 @@ const InputModule = (props) => {
     }
   };
 
+  const onLogout = () => {
+    history.replace("/login");
+  };
+
   useEffect(() => {
     if (inputMethod === "import-sample-data") {
       fetchSampleDatabases();
@@ -146,7 +150,7 @@ const InputModule = (props) => {
 
   return (
     <>
-      <Header />
+      <Header onLogout={onLogout} />
       <div id="container" className="container-fluid">
         <div className="row">
           <div className="col-12">
@@ -297,7 +301,9 @@ const InputModule = (props) => {
                 onChange={(e) => setInputMethod(e.target.value)}
               >
                 <option value="">-- Select an option --</option>
-                <option value="upload-yourself">Take Input Yourself in CSV/JSON file format</option>
+                <option value="upload-yourself">
+                  Take Input Yourself in CSV/JSON file format
+                </option>
                 <option value="import-sample-data">Import Sample Data</option>
                 <option value="fetch-data-from-api">Fetch Data from API</option>
               </select>

@@ -20,6 +20,7 @@ const AdminDashboard = (props) => {
             Authorization: `Bearer ${localStorage.getItem("token")}`,
           },
         });
+        console.log("users", users);
         setUsers(response.data);
       } catch (err) {
         setError("Error fetching users");
@@ -69,15 +70,11 @@ const AdminDashboard = (props) => {
 
   const handleCreateUser = async () => {
     try {
-      await axios.post(
-        `http://127.0.0.1:5001/admin/users`,
-        newUser,
-        {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
-          },
-        }
-      );
+      await axios.post(`http://127.0.0.1:5001/admin/users`, newUser, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+      });
       setUsers([...users, newUser]);
       setShowCreateUserModal(false);
     } catch (err) {
@@ -100,18 +97,54 @@ const AdminDashboard = (props) => {
     history.push("/login");
   };
 
-  const handlePrevious = () => {
-    history.goBack();
+  const takeMeToHome = () => {
+    history.push("/");
+  };
+
+  const toggleAdminButton = async (user) => {
+    try {
+      const newRole = user.role === "admin" ? "user" : "admin";
+      const response = await axios.put(
+        `http://127.0.0.1:5001/admin/toggle-role/${user.id}`,
+        { role: newRole },
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+        }
+      );
+
+      // Log the updated user details
+      console.log("Updated user:", response.data);
+
+      // Update the users state with the new role from the response
+      // Make sure to use response.data.user to get the updated user details
+      setUsers(
+        users.map((u) =>
+          u.id === user.id ? { ...u, role: response.data.user.role } : u
+        )
+      );
+
+      console.log("Updated state:", users);
+    } catch (err) {
+      setError("Error toggling user role");
+    }
   };
 
   return (
     <div className="admin-dashboard">
       {error && <p className="error">{error}</p>}
-      <div>
+      <div style={{ display: "flex" }}>
+        <button style={{ alignSelf: "flex-start" }} onClick={takeMeToHome}>
+          Take me to Home
+        </button>
         <button onClick={handleLogout} className="logout-button">
           Logout
         </button>
-        <button onClick={() => setShowCreateUserModal(true)} className="insert-user-button">
+        <button
+          onClick={() => setShowCreateUserModal(true)}
+          className="insert-user-button"
+        >
           Insert User
         </button>
       </div>
@@ -137,6 +170,12 @@ const AdminDashboard = (props) => {
                   className="delete"
                 >
                   Delete
+                </button>
+                <button
+                  style={{ backgroundColor: "#30c5c1fc" }}
+                  onClick={() => toggleAdminButton(user)}
+                >
+                  {user.role === "admin" ? "Make User" : "Make Admin"}
                 </button>
               </td>
             </tr>
@@ -166,7 +205,13 @@ const AdminDashboard = (props) => {
                 onChange={handleInputChange}
               />
             </label>
-            <div style={{display: "flex",flexDirection: "row",justifyContent: "center"}}>
+            <div
+              style={{
+                display: "flex",
+                flexDirection: "row",
+                justifyContent: "center",
+              }}
+            >
               <button onClick={handleSave}>Save</button>
               <button onClick={() => setShowModal(false)}>Cancel</button>
             </div>
@@ -205,9 +250,17 @@ const AdminDashboard = (props) => {
                 onChange={handleNewUserChange}
               />
             </label>
-            <div style={{display: "flex",flexDirection: "row",justifyContent: "center"}}>
+            <div
+              style={{
+                display: "flex",
+                flexDirection: "row",
+                justifyContent: "center",
+              }}
+            >
               <button onClick={handleCreateUser}>Create</button>
-              <button onClick={() => setShowCreateUserModal(false)}>Cancel</button>
+              <button onClick={() => setShowCreateUserModal(false)}>
+                Cancel
+              </button>
             </div>
           </div>
         </div>

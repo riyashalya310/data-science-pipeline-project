@@ -1,0 +1,60 @@
+/* index.css */
+
+/* Header styles */
+.header {
+    display: flex;
+    justify-content: space-between; /* Space between logo and buttons */
+    align-items: center; /* Center items vertically */
+    padding: 10px 20px; /* Padding around the header */
+    background-color: #f8f9fa; /* Light background color */
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); /* Subtle shadow effect */
+}
+
+/* Logo container styles */
+.header-logo-container {
+    display: flex;
+    align-items: center;
+    padding-left: 70px; /* Center the logo vertically */
+}
+
+/* Logo styles */
+.header-logo {
+    transition: transform 0.3s ease; /* Smooth scaling on hover */
+}
+
+.header-logo:hover {
+    transform: scale(1.05); /* Scale up the logo on hover */
+}
+
+/* Navigation buttons styles */
+.header-nav-buttons {
+    display: flex;
+    gap: 15px; /* Spacing between buttons */
+}
+
+/* Individual button styles */
+.header-nav-button {
+    text-decoration: none; /* Remove underline */
+    padding: 10px 20px; /* Padding for buttons */
+    border-radius: 5px; /* Rounded corners */
+    font-weight: bold; /* Bold text */
+    background-color: #007bff; /* Bootstrap primary color */
+    color: white; /* Text color */
+    border: none; /* No border */
+    cursor: pointer; /* Pointer cursor on hover */
+    transition: background-color 0.3s ease, transform 0.2s ease; /* Smooth transition for background and scale */
+}
+
+.header-nav-button:hover {
+    background-color: #0056b3; /* Darker shade on hover */
+    transform: translateY(-2px); /* Slight lift effect on hover */
+}
+
+/* Logout button styles */
+.header-logout-button {
+    background-color: #dc3545; /* Bootstrap danger color */
+}
+
+.header-logout-button:hover {
+    background-color: #c82333; /* Darker shade on hover */
+}

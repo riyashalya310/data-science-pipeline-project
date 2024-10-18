@@ -11,27 +11,50 @@ const ChatSidebar = ({
   awaitingTypeChange,
   awaitingColumnInput,
   awaitingOutlierConfirmation,
-  awaitingOutlierColumns,  // Add awaitingOutlierColumns prop
-  awaitingNullDeletionConfirmation,  // Add awaitingNullDeletionConfirmation prop
+  awaitingOutlierColumns,
+  awaitingNullDeletionConfirmation,
+  awaitingCategoricalColumn,
+  awaitingEncodingMethod,
+  categoricalColumns,
+  selectedCategoricalColumn, // New prop for available categorical columns
 }) => {
   const [input, setInput] = useState("");
   const [dtypeInput, setDtypeInput] = useState(""); // State for dtype input
+  const [selectedColumn, setSelectedColumn] = useState(""); // State for selected categorical column
+  const [selectedEncodingMethod, setSelectedEncodingMethod] = useState(""); // State for selected encoding method
+
+  const encodingMethods = [
+    "One-hot Encoding",
+    "Label Encoding",
+    "Ordinal Encoding",
+  ]; // Encoding methods options
 
   const handleSend = () => {
-    // Handle input based on the current awaiting state
     if (awaitingColumnInput && dtypeInput.trim()) {
       onSend(dtypeInput); // Send dtype input when awaiting column input
       setDtypeInput(""); // Clear the dtype input field
     } else if (awaitingOutlierConfirmation && input.trim()) {
       onSend(input); // Send input for outlier confirmation
       setInput(""); // Clear input field
-    } else if (awaitingOutlierColumns && input.trim()) { // Handle column input for outlier removal
+    } else if (awaitingOutlierColumns && input.trim()) {
       onSend(input); // Send input when awaiting column names for outliers
       setInput(""); // Clear input field
-    } else if (awaitingNullDeletionConfirmation && input.trim()) { // Handle null deletion confirmation
+    } else if (awaitingNullDeletionConfirmation && input.trim()) {
       onSend(input); // Send yes/no input for null deletion
       setInput(""); // Clear input field
-    } else if (!awaitingColumnInput && !awaitingOutlierConfirmation && !awaitingOutlierColumns && !awaitingNullDeletionConfirmation && input.trim()) {
+    } else if (awaitingCategoricalColumn && selectedColumn) {
+      onSend(selectedColumn); // Send selected categorical column
+      setSelectedColumn(""); // Clear selected column
+    } else if (awaitingEncodingMethod && selectedEncodingMethod) {
+      onSend(selectedEncodingMethod); // Send selected encoding method
+      setSelectedEncodingMethod(""); // Clear selected encoding method
+    } else if (
+      !awaitingColumnInput &&
+      !awaitingOutlierConfirmation &&
+      !awaitingOutlierColumns &&
+      !awaitingNullDeletionConfirmation &&
+      input.trim()
+    ) {
       onSend(input); // Send normal input
       setInput(""); // Clear the input field
     }
@@ -43,15 +66,40 @@ const ChatSidebar = ({
         <FaTimes />
       </button>
       <div className="chat-content">
-        {/* Render chat messages here */}
         <div className="chat-messages">
           {messages.map((msg, index) => (
             <div key={index} className={`chat-message ${msg.type}`}>
-              {msg.text}
+              {msg.type === "bot" ? (
+                <>
+                  <div
+                    dangerouslySetInnerHTML={{
+                      __html: msg.text.replace(/<table.*<\/table>/, ""),
+                    }}
+                  />
+                  {msg.text.includes("<table") && (
+                    <div className="chat-table-container">
+                      {(() => {
+                        const tableMatch = msg.text.match(/<table.*<\/table>/);
+                        return tableMatch ? (
+                          <div
+                            className="chat-table"
+                            dangerouslySetInnerHTML={{
+                              __html: tableMatch[0],
+                            }}
+                          />
+                        ) : null;
+                      })()}
+                    </div>
+                  )}
+                </>
+              ) : (
+                <p>{msg.text}</p>
+              )}
             </div>
           ))}
         </div>
       </div>
+
       <div className="chat-input-container">
         {awaitingColumnInput ? (
           <>
@@ -59,12 +107,12 @@ const ChatSidebar = ({
               type="text"
               value={dtypeInput}
               onChange={(e) => setDtypeInput(e.target.value)}
-              placeholder="Type as {column name} : {dtype:}"
+              placeholder="Type as column names separated by commas"
               className="chat-text-input"
             />
             <button onClick={handleSend}>Send</button>
           </>
-        ) : awaitingOutlierConfirmation ? ( // Check for outlier confirmation
+        ) : awaitingOutlierConfirmation ? (
           <>
             <input
               type="text"
@@ -75,7 +123,7 @@ const ChatSidebar = ({
             />
             <button onClick={handleSend}>Send</button>
           </>
-        ) : awaitingOutlierColumns ? ( // Check for column input for outliers
+        ) : awaitingOutlierColumns ? (
           <>
             <input
               type="text"
@@ -86,7 +134,7 @@ const ChatSidebar = ({
             />
             <button onClick={handleSend}>Send</button>
           </>
-        ) : awaitingNullDeletionConfirmation ? ( // Check for null deletion confirmation
+        ) : awaitingNullDeletionConfirmation ? (
           <>
             <input
               type="text"
@@ -97,6 +145,38 @@ const ChatSidebar = ({
             />
             <button onClick={handleSend}>Send</button>
           </>
+        ) : awaitingCategoricalColumn && categoricalColumns ? (
+          <>
+            <select
+              value={selectedColumn}
+              onChange={(e) => setSelectedColumn(e.target.value)}
+              className="chat-dropdown"
+            >
+              <option value="">Select a categorical column</option>
+              {categoricalColumns.map((col, index) => (
+                <option key={index} value={col}>
+                  {col}
+                </option>
+              ))}
+            </select>
+            <button onClick={handleSend}>Send</button>
+          </>
+        ) : awaitingEncodingMethod ? (
+          <>
+            <select
+              value={selectedEncodingMethod}
+              onChange={(e) => setSelectedEncodingMethod(e.target.value)}
+              className="chat-dropdown"
+            >
+              <option value="">Select an encoding method</option>
+              {encodingMethods.map((method, index) => (
+                <option key={index} value={method}>
+                  {method}
+                </option>
+              ))}
+            </select>
+            <button onClick={handleSend}>Send</button>
+          </>
         ) : (
           <>
             <select
@@ -105,11 +185,12 @@ const ChatSidebar = ({
               className="chat-dropdown"
             >
               <option value="">Select an option</option>
-              {options.map((option, index) => (
-                <option key={index} value={option}>
-                  {option}
-                </option>
-              ))}
+              {options &&
+                options.map((option, index) => (
+                  <option key={index} value={option}>
+                    {option}
+                  </option>
+                ))}
             </select>
             <button onClick={handleSend}>Send</button>
           </>

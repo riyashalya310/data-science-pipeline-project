@@ -11,6 +11,7 @@ import NotFound from './components/NotFound';
 import ProtectedRoute from './components/ProtectedRoute';
 import DndProviderWrapper from "./components/DndProvider";
 import ETLModule from "./components/ETLModule";
+import Header from "./components/Header";
 
 function App() {
   const [state, changeState] = useState({
@@ -27,6 +28,7 @@ function App() {
   return (
     <BrowserRouter>
       <Switch>
+      <Route exact path='/header' component={Header} />
         <Route exact path='/signup' component={Signup} />
         <Route exact path='/login' component={Login} />
         <ProtectedRoute path='/admin/dashboard' component={AdminDashboard} adminOnly />

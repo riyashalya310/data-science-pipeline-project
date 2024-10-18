@@ -19,18 +19,6 @@ const quantiles = (data) => {
   return { Q1, Q3, IQR };
 };
 
-// detecting outliers through z-score  (observed value-mean of sample)/standard deviation of sample
-const detectOutliers = (data, column) => {
-  const values = data
-    .map((row) => row[column])
-    .filter((value) => typeof value === "number");
-  const mean = values.reduce((acc, val) => acc + val, 0) / values.length;
-  const variance =
-    values.reduce((acc, val) => acc + (val - mean) ** 2, 0) / values.length;
-  const stdDev = Math.sqrt(variance);
-  return values.filter((value) => Math.abs(value - mean) > 2 * stdDev);
-};
-
 // Utility functions for scaling
 const minMaxScale = (value, min, max) => (value - min) / (max - min);
 const zScoreScale = (value, mean, stdDev) => (value - mean) / stdDev;
@@ -68,7 +56,12 @@ const ETLModule = (props) => {
   ] = useState(false);
   const [nullRows, setNullRows] = useState([]);
   const [highlightedRows, setHighlightedRows] = useState([]);
-
+  const [awaitingCategoricalColumn, setAwaitingCategoricalColumn] =
+    useState(false);
+  const [selectedCategoricalColumn, setSelectedCategoricalColumn] =
+    useState("");
+  const [awaitingEncodingMethod, setAwaitingEncodingMethod] = useState(false);
+  const [categoricalColumns, setCategoricalColumns] = useState([]);
 
   const dispatch = useDispatch();
 
@@ -127,6 +120,159 @@ const ETLModule = (props) => {
       ...prevMessages,
       { type: "user", text: message },
     ]);
+
+    if (message.toLowerCase() === "encode categorical columns") {
+      const categoricalColumns = Object.keys(filteredContent[0]).filter(
+        (col) => typeof filteredContent[0][col] === "string"
+      );
+
+      if (categoricalColumns.length > 0) {
+        setMessages((prevMessages) => [
+          ...prevMessages,
+          {
+            type: "bot",
+            text: `The following are the categorical columns: ${categoricalColumns.join(
+              ", "
+            )}`,
+          },
+          {
+            type: "bot",
+            text: "Please select one categorical column from the dropdown.",
+          },
+        ]);
+        setAwaitingCategoricalColumn(true);
+        setCategoricalColumns(categoricalColumns); // <-- Make sure you set this
+      } else {
+        setMessages((prevMessages) => [
+          ...prevMessages,
+          { type: "bot", text: "No categorical columns found in the data." },
+        ]);
+      }
+      return;
+    }
+
+    // Step 2: Column selection
+    if (awaitingCategoricalColumn) {
+      const selectedColumn = message.trim();
+      const categoricalColumns = Object.keys(filteredContent[0]).filter(
+        (col) => typeof filteredContent[0][col] === "string"
+      );
+
+      if (categoricalColumns.includes(selectedColumn)) {
+        setMessages((prevMessages) => [
+          ...prevMessages,
+          { type: "bot", text: `You selected the column: ${selectedColumn}` },
+          {
+            type: "bot",
+            text: "There are several encoding methods available: \n\n1. One-hot Encoding: Creates a new binary column for each category.\n\n2. Label Encoding: Assigns a unique integer to each category.\n\n3. Ordinal Encoding: Similar to Label Encoding but assumes an order.\n\nPlease select an encoding method from the dropdown.",
+          },
+        ]);
+        setSelectedCategoricalColumn(selectedColumn); // Store the selected column
+        setAwaitingEncodingMethod(true); // Move to encoding method selection
+        setAwaitingCategoricalColumn(false);
+      } else {
+        setMessages((prevMessages) => [
+          ...prevMessages,
+          { type: "bot", text: "Invalid column. Please try again." },
+        ]);
+      }
+      return;
+    }
+
+    // Step 3: Encoding method selection
+    if (awaitingEncodingMethod) {
+      const encodingMethod = message.trim().toLowerCase();
+
+      const validEncodings = [
+        "one-hot encoding",
+        "label encoding",
+        "ordinal encoding",
+      ];
+
+      if (validEncodings.includes(encodingMethod)) {
+        initialMessage = `Applying ${encodingMethod} to the column: ${selectedCategoricalColumn}`;
+
+        let encodedContent = [...updatedContent];
+
+        if (encodingMethod === "one-hot encoding") {
+          // Implement One-hot Encoding
+          const uniqueValues = [
+            ...new Set(
+              encodedContent.map((row) => row[selectedCategoricalColumn])
+            ),
+          ];
+          encodedContent = encodedContent.map((row) => {
+            const newRow = { ...row };
+            uniqueValues.forEach((value) => {
+              newRow[`${selectedCategoricalColumn}_${value}`] =
+                row[selectedCategoricalColumn] === value ? 1 : 0;
+            });
+            delete newRow[selectedCategoricalColumn];
+            return newRow;
+          });
+          finalMessage = `One-hot encoding applied to column ${selectedCategoricalColumn}.`;
+        } else if (encodingMethod === "label encoding") {
+          // Implement Label Encoding
+          const uniqueValues = [
+            ...new Set(
+              encodedContent.map((row) => row[selectedCategoricalColumn])
+            ),
+          ];
+          const labelMap = uniqueValues.reduce((acc, value, index) => {
+            acc[value] = index;
+            return acc;
+          }, {});
+          encodedContent = encodedContent.map((row) => ({
+            ...row,
+            [selectedCategoricalColumn]:
+              labelMap[row[selectedCategoricalColumn]],
+          }));
+          finalMessage = `Label encoding applied to column ${selectedCategoricalColumn}.`;
+        } else if (encodingMethod === "ordinal encoding") {
+          // Implement Ordinal Encoding
+          const uniqueValues = [
+            ...new Set(
+              encodedContent.map((row) => row[selectedCategoricalColumn])
+            ),
+          ];
+          const ordinalMap = uniqueValues.reduce((acc, value, index) => {
+            acc[value] = index + 1; // Start from 1
+            return acc;
+          }, {});
+          encodedContent = encodedContent.map((row) => ({
+            ...row,
+            [selectedCategoricalColumn]:
+              ordinalMap[row[selectedCategoricalColumn]],
+          }));
+          finalMessage = `Ordinal encoding applied to column ${selectedCategoricalColumn}.`;
+        }
+
+        // Update the table and state with encoded data
+        setFilteredContent(encodedContent);
+        setTable(encodedContent);
+        console.log(encodedContent);
+        console.log(table);
+        dispatch(updateFile({ name: file.name, content: encodedContent }));
+
+        setMessages((prevMessages) => [
+          ...prevMessages,
+          { type: "bot", text: initialMessage },
+          { type: "bot", text: finalMessage },
+          {
+            type: "bot",
+            text: "Please select an option from the dropdown below.",
+          },
+        ]);
+
+        setAwaitingEncodingMethod(false); // Exit encoding method selection
+      } else {
+        setMessages((prevMessages) => [
+          ...prevMessages,
+          { type: "bot", text: "Invalid encoding method. Please try again." },
+        ]);
+      }
+      return;
+    }
 
     // Handle null/empty row deletion confirmation
     if (awaitingNullDeletionConfirmation) {
@@ -474,49 +620,207 @@ const ETLModule = (props) => {
           text: "If you want to change the data type of any column, write it as - {column name} : {dtype:}, or type 'no' to skip.",
         },
       ]);
+    } else if (message === "Provide a snapshot of the data") {
+      const initialMessage = "Fetching a snapshot of the data...";
+
+      // Show the first 5 rows of the data as a snapshot
+      const snapshot = filteredContent.slice(0, 5);
+      const tableHeaders = Object.keys(filteredContent[0]);
+
+      // Create table for the data snapshot
+      let snapshotTable = `<table border="1" cellpadding="5" cellspacing="0"><thead><tr>`;
+      tableHeaders.forEach((header) => {
+        snapshotTable += `<th>${header}</th>`;
+      });
+      snapshotTable += `</tr></thead><tbody>`;
+
+      // Generate rows for the snapshot table
+      snapshot.forEach((row) => {
+        snapshotTable += `<tr>`;
+        tableHeaders.forEach((key) => {
+          snapshotTable += `<td>${row[key] !== undefined ? row[key] : ""}</td>`; // Handle undefined values gracefully
+        });
+        snapshotTable += `</tr>`;
+      });
+      snapshotTable += `</tbody></table>`;
+
+      // Provide column info (e.g., name, non-null counts, data types)
+      const columnInfo = tableHeaders.map((col) => {
+        const nonNullValues = filteredContent.filter(
+          (row) => row[col] !== null && row[col] !== ""
+        ).length;
+        return { col, nonNullValues, dataType: typeof filteredContent[0][col] };
+      });
+
+      // Create summary table
+      let summaryTable = `
+        <table border="1" cellpadding="5" cellspacing="0">
+          <thead>
+            <tr>
+              <th>Column</th>
+              <th>Non-null Count</th>
+              <th>Data Type</th>
+            </tr>
+          </thead>
+          <tbody>`;
+
+      columnInfo.forEach(({ col, nonNullValues, dataType }) => {
+        summaryTable += `
+          <tr>
+            <td>${col}</td>
+            <td>${nonNullValues}</td>
+            <td>${dataType}</td>
+          </tr>`;
+      });
+
+      summaryTable += `
+          </tbody>
+        </table>`;
+
+      // Infer domain and sector
+      const sectorInfo =
+        "This dataset appears to contain general tabular data. It may be applicable to sectors such as finance, healthcare, retail, or other data-driven domains depending on the columns and values.";
+
+      // Send messages to the chat
+      setMessages((prevMessages) => [
+        ...prevMessages,
+        { type: "bot", text: initialMessage },
+        { type: "bot", text: "Here is a snapshot of the data:" },
+        { type: "bot", text: snapshotTable }, // Sending the snapshot table
+        { type: "bot", text: "Column Information:" },
+        { type: "bot", text: summaryTable }, // Sending the summary table
+        { type: "bot", text: sectorInfo },
+        {
+          type: "bot",
+          text: "Please select an option from the dropdown below.",
+        },
+      ]);
+
+      return; // Exit after handling this option
     } else if (message === "Remove NA/Null/Empty Values") {
-  initialMessage = "Checking for rows with null/empty values...";
+      initialMessage = "Checking for rows with null/empty values...";
 
-  // Identify rows with null or empty values
-  const rowsWithNulls = filteredContent.filter((row) => {
-    return Object.values(row).some(
-      (value) => value === null || value === ""
-    );
-  });
+      // Identify rows with null or empty values
+      const rowsWithNulls = filteredContent.filter((row) => {
+        return Object.values(row).some(
+          (value) => value === null || value === ""
+        );
+      });
 
-  if (rowsWithNulls.length > 0) {
-    const nullRowIndices = rowsWithNulls.map((_, index) => index);  // Store indices of rows with null values
-    setNullRows(rowsWithNulls); // Store rows with nulls
-    setHighlightedRows(nullRowIndices);  // Highlight rows with nulls
-    setAwaitingNullDeletionConfirmation(true); // Set state to wait for confirmation
+      if (rowsWithNulls.length > 0) {
+        const nullRowIndices = rowsWithNulls.map((_, index) => index); // Store indices of rows with null values
+        setNullRows(rowsWithNulls); // Store rows with nulls
+        setHighlightedRows(nullRowIndices); // Highlight rows with nulls
+        setAwaitingNullDeletionConfirmation(true); // Set state to wait for confirmation
 
-    // Show the rows with null/empty values in chat
-    const nullRowMessages = rowsWithNulls.map(
-      (row, index) => `Row ${index + 1}: ${JSON.stringify(row)}`
-    );
-    finalMessage = `Found ${rowsWithNulls.length} rows with null/empty values. Do you want to delete them? Type 'yes' or 'no'.`;
+        // Show the rows with null/empty values in chat
+        const nullRowMessages = rowsWithNulls.map(
+          (row, index) => `Row ${index + 1}: ${JSON.stringify(row)}`
+        );
+        finalMessage = `Found ${rowsWithNulls.length} rows with null/empty values. Do you want to delete them? Type 'yes' or 'no'.`;
 
-    setMessages((prevMessages) => [
-      ...prevMessages,
-      { type: "bot", text: initialMessage },
-      ...nullRowMessages.map((msg) => ({ type: "bot", text: msg })),
-      { type: "bot", text: finalMessage },
-    ]);
-  } else {
-    // No null values found
-    finalMessage = "No rows with null/empty values found.";
-    setMessages((prevMessages) => [
-      ...prevMessages,
-      { type: "bot", text: finalMessage },
-      {
-        type: "bot",
-        text: "Please select an option from the dropdown below.",
-      },
-    ]);
-  }
-  return; // Exit to wait for user confirmation
-}
- else if (message === "Scale Columns") {
+        setMessages((prevMessages) => [
+          ...prevMessages,
+          { type: "bot", text: initialMessage },
+          ...nullRowMessages.map((msg) => ({ type: "bot", text: msg })),
+          { type: "bot", text: finalMessage },
+        ]);
+      } else {
+        // No null values found
+        finalMessage = "No rows with null/empty values found.";
+        setMessages((prevMessages) => [
+          ...prevMessages,
+          { type: "bot", text: finalMessage },
+          {
+            type: "bot",
+            text: "Please select an option from the dropdown below.",
+          },
+        ]);
+      }
+      return; // Exit to wait for user confirmation
+    } else if (message === "Remove Duplicates") {
+      initialMessage = "Removing duplicate rows...";
+
+      const uniqueContent = new Set();
+      updatedContent = updatedContent.filter((row) => {
+        const rowString = JSON.stringify(row);
+        if (uniqueContent.has(rowString)) {
+          return false;
+        } else {
+          uniqueContent.add(rowString);
+          return true;
+        }
+      });
+
+      finalMessage =
+        updatedContent.length < filteredContent.length
+          ? "Great! Duplicates removed."
+          : "No duplicates found.";
+
+      setFilteredContent(updatedContent);
+      setTable(updatedContent);
+      dispatch(updateFile({ name: file.name, content: table }));
+
+      setMessages((prevMessages) => [
+        ...prevMessages,
+        { type: "bot", text: initialMessage },
+        { type: "bot", text: finalMessage },
+        {
+          type: "bot",
+          text: "Please select an option from the dropdown below.",
+        },
+      ]);
+    } else if (message === "Remove Outliers") {
+      initialMessage = "Detecting outliers in the data...";
+      const columnsWithOutliers = {};
+
+      // Detect outliers in each column
+      columns.forEach((col) => {
+        const values = filteredContent
+          .map((row) => row[col])
+          .filter((v) => typeof v === "number"); // Get numerical values
+        const { Q1, Q3, IQR } = quantiles(values); // Get Q1, Q3, IQR
+        const threshold_high = Q3 + 1.5 * IQR;
+        const threshold_low = Q1 - 1.5 * IQR;
+
+        const outliersInColumn = values.filter(
+          (value) => value < threshold_low || value > threshold_high
+        );
+        if (outliersInColumn.length > 0) {
+          columnsWithOutliers[col] = outliersInColumn;
+        }
+      });
+
+      if (Object.keys(columnsWithOutliers).length > 0) {
+        setAwaitingOutlierConfirmation(true);
+        setOutliers(columnsWithOutliers); // Store outliers for later use
+
+        const outlierMessages = Object.entries(columnsWithOutliers).map(
+          ([col, outliers]) => {
+            return `Column: ${col}, Outliers: ${outliers.join(", ")}`;
+          }
+        );
+
+        setMessages((prevMessages) => [
+          ...prevMessages,
+          { type: "bot", text: initialMessage },
+          ...outlierMessages.map((msg) => ({ type: "bot", text: msg })),
+          {
+            type: "bot",
+            text: "Outliers are highlighted. Do you want to remove them? Type 'yes' or 'no'.",
+          },
+        ]);
+      } else {
+        setMessages((prevMessages) => [
+          ...prevMessages,
+          { type: "bot", text: "No outliers detected in the data." },
+          {
+            type: "bot",
+            text: "Please select an option from the dropdown below.",
+          },
+        ]);
+      }
+    } else if (message === "Scale Columns") {
       initialMessage = "Listing numerical columns for scaling...";
       const numericalCols = columns.filter((col) => {
         return filteredContent.every((row) => typeof row[col] === "number");
@@ -612,168 +916,176 @@ const ETLModule = (props) => {
   };
 
   return (
-    <div className="etl-module-container">
-      <div
-        className={`etl-content ${
-          isChatOpen ? "with-chat-open" : "with-chat-closed"
-        }`}
-      >
-        {file ? (
-          <div>
-            <div className="etl-header">
-              <button
-                type="button"
-                className="btn btn-primary"
-                onClick={backBtn}
-              >
-                <IoMdArrowBack />
-                Back
-              </button>
-              <h2 className="file-content-heading">
-                File Content: <span className="file-name">{file.name}</span>
-              </h2>
-              <button
-                type="button"
-                className="btn btn-primary"
-                onClick={moveToAnalysisBtn}
-                style={{ marginRight: "40px" }}
-              >
-                Final View
-                <FaArrowRight />
-              </button>
-            </div>
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "flex-end",
-                marginBottom: "0",
-              }}
-            >
-              <p
+    <>
+      <div className="etl-module-container">
+        <div
+          className={`etl-content ${
+            isChatOpen ? "with-chat-open" : "with-chat-closed"
+          }`}
+        >
+          {file ? (
+            <div>
+              <div className="etl-header">
+                <button
+                  type="button"
+                  className="btn btn-primary"
+                  onClick={backBtn}
+                >
+                  <IoMdArrowBack />
+                  Back
+                </button>
+                <h2 className="file-content-heading">
+                  File Content: <span className="file-name">{file.name}</span>
+                </h2>
+                <button
+                  type="button"
+                  className="btn btn-primary"
+                  onClick={moveToAnalysisBtn}
+                  style={{ marginRight: "40px" }}
+                >
+                  Final View
+                  <FaArrowRight />
+                </button>
+              </div>
+              <div
                 style={{
-                  marginRight: "40px",
-                  borderStyle: "solid",
-                  borderWidth: "1px",
-                  backgroundColor: "black",
-                  color: "white",
-                  borderRadius: "5px",
-                  padding: "5px",
+                  display: "flex",
+                  justifyContent: "flex-end",
+                  marginBottom: "0",
                 }}
               >
-                Total records : {file.content.length}
-              </p>
-            </div>
-            {Array.isArray(filteredContent) && filteredContent.length > 0 ? (
-              <DragDropContext onDragEnd={handleRowDragEnd}>
-                <Droppable droppableId="droppable-rows">
-                  {(provided) => (
-                    <table
-                      className="file-table"
-                      ref={provided.innerRef}
-                      {...provided.droppableProps}
-                    >
-                      <thead>
-                        <tr>
-                          <th>Index</th>
-                          {columns.map((col, index) => (
-                            <th key={col}>{col}</th>
-                          ))}
-                          <th>Delete</th> {/* Column for delete button */}
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {filteredContent.map((row, rowIndex) => (
-                          <Draggable
-                            key={rowIndex}
-                            draggableId={`row-${rowIndex}`}
-                            index={rowIndex}
-                          >
-                            {(provided) => (
-                              <tr
-                                key={rowIndex}
-                                ref={provided.innerRef}
-                                {...provided.draggableProps}
-                                {...provided.dragHandleProps}
-                              >
-                                <td>{rowIndex}</td>
-                                {columns.map((col) => (
-                                  <td
-                                    key={col}
-                                    className={
-                                      outliers[col] &&
-                                      outliers[col].includes(row[col])
-                                        ? "highlight-outlier"
-                                        : ""
-                                    }
-                                  >
-                                    <input
-                                      type="text"
-                                      value={row[col]}
-                                      onChange={(e) =>
-                                        handleCellChange(
-                                          rowIndex,
-                                          col,
-                                          e.target.value
-                                        )
+                <p
+                  style={{
+                    marginRight: "40px",
+                    borderStyle: "solid",
+                    borderWidth: "1px",
+                    backgroundColor: "black",
+                    color: "white",
+                    borderRadius: "5px",
+                    padding: "5px",
+                  }}
+                >
+                  Total records : {file.content.length}
+                </p>
+              </div>
+              {Array.isArray(filteredContent) && filteredContent.length > 0 ? (
+                <DragDropContext onDragEnd={handleRowDragEnd}>
+                  <Droppable droppableId="droppable-rows">
+                    {(provided) => (
+                      <table
+                        className="file-table"
+                        ref={provided.innerRef}
+                        {...provided.droppableProps}
+                      >
+                        <thead>
+                          <tr>
+                            <th>Index</th>
+                            {columns.map((col, index) => (
+                              <th key={col}>{col}</th>
+                            ))}
+                            <th>Delete</th> {/* Column for delete button */}
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {filteredContent.map((row, rowIndex) => (
+                            <Draggable
+                              key={rowIndex}
+                              draggableId={`row-${rowIndex}`}
+                              index={rowIndex}
+                            >
+                              {(provided) => (
+                                <tr
+                                  key={rowIndex}
+                                  ref={provided.innerRef}
+                                  {...provided.draggableProps}
+                                  {...provided.dragHandleProps}
+                                >
+                                  <td>{rowIndex}</td>
+                                  {columns.map((col) => (
+                                    <td
+                                      key={col}
+                                      className={
+                                        outliers[col] &&
+                                        outliers[col].includes(row[col])
+                                          ? "highlight-outlier"
+                                          : ""
                                       }
-                                    />
+                                    >
+                                      <input
+                                        type="text"
+                                        value={row[col]}
+                                        onChange={(e) =>
+                                          handleCellChange(
+                                            rowIndex,
+                                            col,
+                                            e.target.value
+                                          )
+                                        }
+                                      />
+                                    </td>
+                                  ))}
+                                  <td>
+                                    <button
+                                      type="button"
+                                      className="delete-row-btn"
+                                      onClick={() => handleDeleteRow(rowIndex)}
+                                    >
+                                      Delete
+                                    </button>
                                   </td>
-                                ))}
-                                <td>
-                                  <button
-                                    type="button"
-                                    className="delete-row-btn"
-                                    onClick={() => handleDeleteRow(rowIndex)}
-                                  >
-                                    Delete
-                                  </button>
-                                </td>
-                              </tr>
-                            )}
-                          </Draggable>
-                        ))}
-                        {provided.placeholder}
-                      </tbody>
-                    </table>
-                  )}
-                </Droppable>
-              </DragDropContext>
-            ) : (
-              <p>No data available</p>
-            )}
-          </div>
-        ) : (
-          <p>No file selected</p>
+                                </tr>
+                              )}
+                            </Draggable>
+                          ))}
+                          {provided.placeholder}
+                        </tbody>
+                      </table>
+                    )}
+                  </Droppable>
+                </DragDropContext>
+              ) : (
+                <p>No data available</p>
+              )}
+            </div>
+          ) : (
+            <p>No file selected</p>
+          )}
+          <button
+            className={`reopen-chat-btn ${isChatOpen ? "hidden" : "visible"}`}
+            onClick={() => setIsChatOpen(true)}
+          >
+            Reopen Chat
+          </button>
+        </div>
+        {isChatOpen && (
+          <ChatSidebar
+            isOpen={isChatOpen}
+            onClose={() => setIsChatOpen(false)}
+            onSend={handleSendMessage}
+            options={[
+              "Provide a snapshot of the data",
+              "Remove NA/Null/Empty Values",
+              "Remove Duplicates",
+              "Show Info About Columns",
+              "Remove Outliers",
+              "Scale Columns",
+              "Encode Categorical Columns",
+              "Exit",
+            ]}
+            messages={messages}
+            awaitingColumnInput={awaitingColumnInput}
+            awaitingTypeChange={awaitingTypeChange}
+            awaitingOutlierConfirmation={awaitingOutlierConfirmation}
+            awaitingOutlierColumns={awaitingOutlierColumns}
+            awaitingNullDeletionConfirmation={awaitingNullDeletionConfirmation}
+            awaitingCategoricalColumn={awaitingCategoricalColumn}
+            awaitingEncodingMethod={awaitingEncodingMethod}
+            selectedCategoricalColumn={selectedCategoricalColumn}
+            categoricalColumns={categoricalColumns}
+          />
         )}
-        <button
-          className={`reopen-chat-btn ${isChatOpen ? "hidden" : "visible"}`}
-          onClick={() => setIsChatOpen(true)}
-        >
-          Reopen Chat
-        </button>
       </div>
-      {isChatOpen && (
-        <ChatSidebar
-          isOpen={isChatOpen}
-          onClose={() => setIsChatOpen(false)}
-          onSend={handleSendMessage}
-          options={[
-            "Remove NA/Null/Empty Values",
-            "Remove Duplicates",
-            "Show Info About Columns",
-            "Remove Outliers",
-            "Scale Columns",
-            "Exit",
-          ]}
-          messages={messages}
-          awaitingColumnInput={awaitingColumnInput}
-          awaitingTypeChange={awaitingTypeChange}
-          awaitingOutlierConfirmation={awaitingOutlierConfirmation}
-          awaitingOutlierColumns={awaitingOutlierColumns}
-          awaitingNullDeletionConfirmation={awaitingNullDeletionConfirmation}
-        />
-      )}
-    </div>
+    </>
   );
 };
 

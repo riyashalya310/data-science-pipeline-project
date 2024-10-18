@@ -1,25 +1,24 @@
-import './index.css'
+import React from 'react';
+import { withRouter } from 'react-router-dom';
+import './index.css';
+import cdacImg from '../../images/cdac-img.jpg';
 
-const Header = () => {
-    <nav className="navbar navbar-expand-lg navbar-light bg-light">
-        <div className="container-fluid">
-            <a className="navbar-brand" href="https://www.cdac.in/"><img src="" alt='' style={{width: "60px"}}/></a>
-            <button className="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav"
-                aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
-                <span className="navbar-toggler-icon"></span>
-            </button>
-            <div className="collapse navbar-collapse" id="navbarNav">
-                <ul className="navbar-nav">
-                    <li className="nav-item">
-                        <a className="nav-link" href='/' aria-current="page">Home</a>
-                    </li>
-                    <li className="nav-item">
-                        <a className="nav-link" href='/'>About</a>
-                    </li>
-                </ul>
+const Header = ({ onLogout, location }) => {
+    // Check if the current path is not the home page
+    const isHomePage = location.pathname === '/';
+
+    return (
+        <header className="header">
+            <div className="header-logo-container">
+                <img src={cdacImg} alt='Brand Logo' className="header-logo" style={{ width: "60px" }} />
             </div>
-        </div>
-    </nav>
-}
+            <nav className="header-nav-buttons">
+                {/* Conditionally render the Home button */}
+                { !isHomePage && <a href="/" className="header-nav-button">Home</a> }
+                <button className="header-nav-button header-logout-button" onClick={onLogout}>Logout</button>
+            </nav>
+        </header>
+    );
+};
 
-export default Header
+export default withRouter(Header);

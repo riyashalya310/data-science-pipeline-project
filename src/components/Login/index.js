@@ -42,22 +42,21 @@ const Login = ({ history }) => {
       setLoading(false);
     }
   };
-
   return (
     <div className="login-container">
       <div className="login-wrapper">
         <form className="login-form" onSubmit={handleLogin}>
           <h2 className="login-title">Login</h2>
-          <div style={{display: "flex",flexDirection : "row",justifyContent: "center"}}>
-          <GoogleLogin
-            onSuccess={(credentialResponse) => {
-              const decoded = jwtDecode(credentialResponse?.credential);
-              setEmail(decoded.email);
-            }}
-            onError={() => {
-              console.log("Login Failed");
-            }}
-          />
+          <div className="google-login-btn">
+            <GoogleLogin
+              onSuccess={(credentialResponse) => {
+                const decoded = jwtDecode(credentialResponse?.credential);
+                setEmail(decoded.email);
+              }}
+              onError={() => {
+                console.log("Login Failed");
+              }}
+            />
           </div>
           <div className="form-group">
             <label htmlFor="email">Email:</label>
@@ -91,7 +90,7 @@ const Login = ({ history }) => {
         </form>
       </div>
     </div>
-  );
+  );  
 };
 
 export default withRouter(Login);
