@@ -1,0 +1,27 @@
+/* Probability Distribution Analysis Styling */
+
+.distribution-analysis {
+    padding: 1em;
+    background-color: #f4f8fc;
+    border-radius: 8px;
+    margin-top: 1em;
+    box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.05);
+  }
+  
+  .distribution-analysis h3 {
+    margin-top: 0;
+    color: #333;
+  }
+  
+  .distribution-guidance h4 {
+    margin-top: 1em;
+    color: #007bff;
+  }
+  
+  .distribution-guidance p,
+  .distribution-guidance ul li {
+    font-size: 0.9em;
+    color: #555;
+    line-height: 1.6;
+  }
+  

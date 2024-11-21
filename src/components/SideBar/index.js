@@ -1,6 +1,6 @@
-import React, { useState } from "react";
+import React, { useState,useRef,useEffect } from "react";
 import { FaTimes } from "react-icons/fa";
-import "./index.css"; // Import your CSS file for styling
+import "./index.css";
 
 const ChatSidebar = ({
   isOpen,
@@ -15,39 +15,47 @@ const ChatSidebar = ({
   awaitingNullDeletionConfirmation,
   awaitingCategoricalColumn,
   awaitingEncodingMethod,
+  awaitingScaleColumn,
   categoricalColumns,
-  selectedCategoricalColumn, // New prop for available categorical columns
+  numericalColumns,
+  outlierColumns,
+  selectedCategoricalColumn,
 }) => {
   const [input, setInput] = useState("");
-  const [dtypeInput, setDtypeInput] = useState(""); // State for dtype input
-  const [selectedColumn, setSelectedColumn] = useState(""); // State for selected categorical column
-  const [selectedEncodingMethod, setSelectedEncodingMethod] = useState(""); // State for selected encoding method
+  const [dtypeInput, setDtypeInput] = useState("");
+  const [selectedColumn, setSelectedColumn] = useState("");
+  const [selectedEncodingMethod, setSelectedEncodingMethod] = useState("");
+
+  const chatMessagesRef = useRef(null);
 
   const encodingMethods = [
     "One-hot Encoding",
     "Label Encoding",
     "Ordinal Encoding",
-  ]; // Encoding methods options
+  ];
 
   const handleSend = () => {
     if (awaitingColumnInput && dtypeInput.trim()) {
-      onSend(dtypeInput); // Send dtype input when awaiting column input
-      setDtypeInput(""); // Clear the dtype input field
+      onSend(dtypeInput);
+      setDtypeInput("");
     } else if (awaitingOutlierConfirmation && input.trim()) {
-      onSend(input); // Send input for outlier confirmation
-      setInput(""); // Clear input field
-    } else if (awaitingOutlierColumns && input.trim()) {
-      onSend(input); // Send input when awaiting column names for outliers
-      setInput(""); // Clear input field
+      onSend(input);
+      setInput("");
+    } else if (awaitingOutlierColumns && selectedColumn) {
+      onSend(selectedColumn);
+      setSelectedColumn("");
     } else if (awaitingNullDeletionConfirmation && input.trim()) {
-      onSend(input); // Send yes/no input for null deletion
-      setInput(""); // Clear input field
+      onSend(input);
+      setInput("");
     } else if (awaitingCategoricalColumn && selectedColumn) {
-      onSend(selectedColumn); // Send selected categorical column
-      setSelectedColumn(""); // Clear selected column
+      onSend(selectedColumn);
+      setSelectedColumn("");
     } else if (awaitingEncodingMethod && selectedEncodingMethod) {
-      onSend(selectedEncodingMethod); // Send selected encoding method
-      setSelectedEncodingMethod(""); // Clear selected encoding method
+      onSend(selectedEncodingMethod);
+      setSelectedEncodingMethod("");
+    } else if (awaitingScaleColumn && selectedColumn) {
+      onSend(selectedColumn); // Send the selected column to be scaled
+      setSelectedColumn(""); // Clear selected column after sending
     } else if (
       !awaitingColumnInput &&
       !awaitingOutlierConfirmation &&
@@ -55,10 +63,46 @@ const ChatSidebar = ({
       !awaitingNullDeletionConfirmation &&
       input.trim()
     ) {
-      onSend(input); // Send normal input
-      setInput(""); // Clear the input field
+      onSend(input);
+      setInput("");
     }
   };
+
+  const handleKeyDown = (event) => {
+    if (event.key === "Enter") {
+      handleSend();
+    }
+  };
+
+  const handleNullDeletionSelection = (value) => {
+    onSend(value);
+    setInput("");
+  };
+
+  const handleOutlierConfirmationSelection = (value) => {
+    onSend(value);
+    setInput("");
+  };
+
+  const handleOutlierColumnSelection = (column) => {
+    onSend(column);
+    setSelectedColumn("");
+  };
+
+  const handleScaleColumnSelection = (column) => {
+    onSend(column);
+    setSelectedColumn("");
+  };
+
+  useEffect(() => {
+    if (chatMessagesRef.current) {
+      // Use setTimeout to ensure scrolling occurs after DOM updates
+      setTimeout(() => {
+        chatMessagesRef.current.scrollTop =
+          chatMessagesRef.current.scrollHeight;
+      }, 0);
+    }
+  }, [messages, isOpen]);
 
   return (
     <div className={`chat-sidebar ${isOpen ? "open" : ""}`}>
@@ -66,7 +110,7 @@ const ChatSidebar = ({
         <FaTimes />
       </button>
       <div className="chat-content">
-        <div className="chat-messages">
+        <div className="chat-messages"  ref={chatMessagesRef}>
           {messages.map((msg, index) => (
             <div key={index} className={`chat-message ${msg.type}`}>
               {msg.type === "bot" ? (
@@ -109,41 +153,66 @@ const ChatSidebar = ({
               onChange={(e) => setDtypeInput(e.target.value)}
               placeholder="Type as column names separated by commas"
               className="chat-text-input"
+              onKeyDown={handleKeyDown}
             />
             <button onClick={handleSend}>Send</button>
           </>
         ) : awaitingOutlierConfirmation ? (
           <>
-            <input
-              type="text"
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              placeholder="Type 'yes' or 'no' to confirm outlier removal"
-              className="chat-text-input"
-            />
-            <button onClick={handleSend}>Send</button>
+            <div className="confirmation-dropdown">
+              <label>Do you want to remove outliers?</label>
+              <select onChange={(e) => handleOutlierConfirmationSelection(e.target.value)}>
+                <option value="">Select an option</option>
+                <option value="yes">Yes</option>
+                <option value="no">No</option>
+              </select>
+            </div>
           </>
         ) : awaitingOutlierColumns ? (
           <>
-            <input
-              type="text"
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              placeholder="Enter column names separated by spaces, or type 'all'"
-              className="chat-text-input"
-            />
+            <select
+              value={selectedColumn}
+              onChange={(e) => handleOutlierColumnSelection(e.target.value)}
+              className="chat-dropdown"
+              onKeyDown={handleKeyDown}
+            >
+              <option value="">Select a column to remove outliers</option>
+              {outlierColumns.map((col, index) => (
+                <option key={index} value={col}>
+                  {col}
+                </option>
+              ))}
+              <option value="all">All Columns</option>
+            </select>
             <button onClick={handleSend}>Send</button>
           </>
         ) : awaitingNullDeletionConfirmation ? (
           <>
-            <input
-              type="text"
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              placeholder="Type 'yes' or 'no' to confirm null value removal"
-              className="chat-text-input"
-            />
-            <button onClick={handleSend}>Send</button>
+            <div className="confirmation-dropdown">
+              <label>Do you want to delete rows with null/empty values?</label>
+              <select onChange={(e) => handleNullDeletionSelection(e.target.value)}>
+                <option value="">Select an option</option>
+                <option value="yes">Yes</option>
+                <option value="no">No</option>
+              </select>
+            </div>
+          </>
+        ) : awaitingScaleColumn ? (
+          <>
+            <select
+              value={selectedColumn}
+              onChange={(e) => handleScaleColumnSelection(e.target.value)}
+              className="chat-dropdown"
+              onKeyDown={handleKeyDown}
+            >
+              <option value="">Select a column to scale</option>
+              {numericalColumns.map((col, index) => (
+                <option key={index} value={col}>
+                  {col}
+                </option>
+              ))}
+            </select>
+            <button onClick={handleSend}>Scale Column</button>
           </>
         ) : awaitingCategoricalColumn && categoricalColumns ? (
           <>
@@ -151,6 +220,7 @@ const ChatSidebar = ({
               value={selectedColumn}
               onChange={(e) => setSelectedColumn(e.target.value)}
               className="chat-dropdown"
+              onKeyDown={handleKeyDown}
             >
               <option value="">Select a categorical column</option>
               {categoricalColumns.map((col, index) => (
@@ -167,6 +237,7 @@ const ChatSidebar = ({
               value={selectedEncodingMethod}
               onChange={(e) => setSelectedEncodingMethod(e.target.value)}
               className="chat-dropdown"
+              onKeyDown={handleKeyDown}
             >
               <option value="">Select an encoding method</option>
               {encodingMethods.map((method, index) => (
@@ -183,6 +254,7 @@ const ChatSidebar = ({
               value={input}
               onChange={(e) => setInput(e.target.value)}
               className="chat-dropdown"
+              onKeyDown={handleKeyDown}
             >
               <option value="">Select an option</option>
               {options &&

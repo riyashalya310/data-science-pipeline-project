@@ -3,7 +3,12 @@ import { useSelector, useDispatch } from "react-redux";
 import { FaArrowRight } from "react-icons/fa";
 import { IoMdArrowBack } from "react-icons/io";
 import ChatSidebar from "../SideBar";
-import { updateColumnType, updateFile } from "../../store/slices/userSlice";
+import {
+  updateColumnType,
+  updateFile,
+  updateCategoricalColumns,
+  updateOriginalCategories,
+} from "../../store/slices/userSlice";
 import { DragDropContext, Draggable, Droppable } from "react-beautiful-dnd";
 import "./index.css";
 
@@ -48,7 +53,9 @@ const ETLModule = (props) => {
     file ? Object.keys(file.content[0]) : []
   );
   const [scalingColumns, setScalingColumns] = useState(false);
+  const [awaitingScaleColumn, setAwaitingScaleColumn] = useState(false);
   const [numericalColumns, setNumericalColumns] = useState([]);
+  const [outlierColumns, setOutlierColumns] = useState([]);
   const [awaitingOutlierColumns, setAwaitingOutlierColumns] = useState(false);
   const [
     awaitingNullDeletionConfirmation,
@@ -62,6 +69,7 @@ const ETLModule = (props) => {
     useState("");
   const [awaitingEncodingMethod, setAwaitingEncodingMethod] = useState(false);
   const [categoricalColumns, setCategoricalColumns] = useState([]);
+  const [originalColumnTypes, setOriginalColumnTypes] = useState({});
 
   const dispatch = useDispatch();
 
@@ -110,6 +118,63 @@ const ETLModule = (props) => {
     setIsChatOpen(false);
   };
 
+  // const expectedColumnTypes = {
+  //   Index: "number",
+  //   Code: "number", // Replace with the expected data types for your columns
+  //   Birthplace: "string",
+  //   Census_night_population_count: "number",
+  //   Census_usually_resident_population_count: "number",
+  // };
+
+  // const checkColumnTypes = () => {
+  //   if (!file || !file.columnTypes) {
+  //     console.log("File not found or column types not initialized");
+  //     return;
+  //   }
+
+  //   for (const [column, expectedType] of Object.entries(expectedColumnTypes)) {
+  //     const actualType = file.columnTypes[column];
+
+  //     if (actualType !== expectedType) {
+  //       console.log(
+  //         `Data type mismatch for column ${column}: expected ${expectedType}, but got ${actualType}`
+  //       );
+  //     } else {
+  //       console.log(
+  //         `Data type for column ${column} is as expected: ${actualType}`
+  //       );
+  //     }
+  //   }
+  // };
+
+  // useEffect(() => {
+  //   checkColumnTypes();
+  // }, [filteredContent]); // Run type check after filteredContent updates
+
+  // A helper to determine if a column should be considered categorical or numerical
+  const inferColumnType = (column) => {
+    const sampleValues = filteredContent.map((row) => row[column]).slice(0, 10); // Take a sample for efficiency
+    const areAllStrings = sampleValues.every((val) => typeof val === "string");
+    const areAllNumbers = sampleValues.every(
+      (val) => !isNaN(parseFloat(val)) && isFinite(val)
+    );
+    return areAllStrings ? "string" : areAllNumbers ? "number" : "mixed";
+  };
+
+  // Function to initialize column types based on input file
+  const initializeColumnTypes = () => {
+    const initialTypes = {};
+    Object.keys(filteredContent[0]).forEach((col) => {
+      initialTypes[col] = inferColumnType(col);
+    });
+    setOriginalColumnTypes(initialTypes);
+  };
+
+  // Call this function after loading a new file
+  useEffect(() => {
+    initializeColumnTypes();
+  }, [filteredContent]);
+
   const handleSendMessage = async (message) => {
     let updatedContent = [...filteredContent];
     let initialMessage = "";
@@ -122,8 +187,12 @@ const ETLModule = (props) => {
     ]);
 
     if (message.toLowerCase() === "encode categorical columns") {
-      const categoricalColumns = Object.keys(filteredContent[0]).filter(
-        (col) => typeof filteredContent[0][col] === "string"
+      // Check if each column has only string data in all rows
+      console.log(originalColumnTypes);
+
+      // Filter columns that have string data type
+      const categoricalColumns = Object.keys(originalColumnTypes).filter(
+        (col) => originalColumnTypes[col] === "string"
       );
 
       if (categoricalColumns.length > 0) {
@@ -141,11 +210,188 @@ const ETLModule = (props) => {
           },
         ]);
         setAwaitingCategoricalColumn(true);
-        setCategoricalColumns(categoricalColumns); // <-- Make sure you set this
+        setCategoricalColumns(categoricalColumns); // <-- Store categorical columns in state
+
+        // Dispatch action to update categorical columns in Redux
+        dispatch(
+          updateCategoricalColumns({
+            name: file.name, // Assuming you're passing the file name
+            categoricalColumns: categoricalColumns, // Update categorical columns list in Redux
+          })
+        );
+
+        // Store the original categories (labels) in Redux
+        const originalCategories = categoricalColumns.reduce((acc, column) => {
+          // Get unique categories for each categorical column
+          const uniqueCategories = [
+            ...new Set(filteredContent.map((row) => row[column])),
+          ];
+          acc[column] = uniqueCategories; // Store unique categories for each column
+          return acc;
+        }, {});
+
+        console.log("Original Categories: ", originalCategories);
+
+        // Dispatch an action to store original categories in Redux
+        dispatch(
+          updateOriginalCategories({
+            name: file.name,
+            originalCategories: originalCategories, // Save original categories in Redux
+          })
+        );
+
+        // Proceed with encoding categorical columns
+        // Assuming encoding process here, you would handle the encoding logic next
+        // For instance, you could map the original categories to numerical values
+        const encodedCategories = categoricalColumns.reduce((acc, column) => {
+          const categories = originalCategories[column];
+          const categoryMap = categories.reduce((map, category, index) => {
+            map[category] = index; // Assign an encoded value (could be any encoding strategy)
+            return map;
+          }, {});
+          acc[column] = categoryMap; // Store encoded categories for each column
+          return acc;
+        }, {});
+
+        console.log("Encoded Categories: ", encodedCategories);
+
+        // Optionally: Update Redux with encoded categories if needed
+        // Example: Dispatch a new action to store encoded categories in Redux
+        dispatch(
+          updateCategoricalColumns({
+            name: file.name, // File name
+            categoricalColumns: encodedCategories, // Store encoded categories mapping
+          })
+        );
       } else {
         setMessages((prevMessages) => [
           ...prevMessages,
           { type: "bot", text: "No categorical columns found in the data." },
+        ]);
+      }
+
+      return;
+    }
+
+    // Step 2: Column selection
+    if (awaitingCategoricalColumn) {
+      const selectedColumn = message.trim();
+      const categoricalColumns = Object.keys(filteredContent[0]).filter(
+        (col) => typeof filteredContent[0][col] === "string"
+      );
+
+      if (categoricalColumns.includes(selectedColumn)) {
+        setMessages((prevMessages) => [
+          ...prevMessages,
+          { type: "bot", text: `You selected the column: ${selectedColumn}` },
+          {
+            type: "bot",
+            text: "There are several encoding methods available: \n\n1. One-hot Encoding: Creates a new binary column for each category.\n\n2. Label Encoding: Assigns a unique integer to each category.\n\n3. Ordinal Encoding: Similar to Label Encoding but assumes an order.\n\nPlease select an encoding method from the dropdown.",
+          },
+        ]);
+        setSelectedCategoricalColumn(selectedColumn); // Store the selected column
+        setAwaitingEncodingMethod(true); // Move to encoding method selection
+        setAwaitingCategoricalColumn(false);
+      } else {
+        setMessages((prevMessages) => [
+          ...prevMessages,
+          { type: "bot", text: "Invalid column. Please try again." },
+        ]);
+      }
+      return;
+    }
+
+    // Step 3: Encoding method selection
+    if (awaitingEncodingMethod) {
+      const encodingMethod = message.trim().toLowerCase();
+
+      const validEncodings = [
+        "one-hot encoding",
+        "label encoding",
+        "ordinal encoding",
+      ];
+
+      if (validEncodings.includes(encodingMethod)) {
+        initialMessage = `Applying ${encodingMethod} to the column: ${selectedCategoricalColumn}`;
+
+        let encodedContent = [...updatedContent];
+
+        if (encodingMethod === "one-hot encoding") {
+          // Implement One-hot Encoding
+          const uniqueValues = [
+            ...new Set(
+              encodedContent.map((row) => row[selectedCategoricalColumn])
+            ),
+          ];
+          encodedContent = encodedContent.map((row) => {
+            const newRow = { ...row };
+            uniqueValues.forEach((value) => {
+              newRow[`${selectedCategoricalColumn}_${value}`] =
+                row[selectedCategoricalColumn] === value ? 1 : 0;
+            });
+            delete newRow[selectedCategoricalColumn];
+            return newRow;
+          });
+          finalMessage = `One-hot encoding applied to column ${selectedCategoricalColumn}.`;
+        } else if (encodingMethod === "label encoding") {
+          // Implement Label Encoding
+          const uniqueValues = [
+            ...new Set(
+              encodedContent.map((row) => row[selectedCategoricalColumn])
+            ),
+          ];
+          const labelMap = uniqueValues.reduce((acc, value, index) => {
+            acc[value] = index;
+            return acc;
+          }, {});
+          encodedContent = encodedContent.map((row) => ({
+            ...row,
+            [selectedCategoricalColumn]:
+              labelMap[row[selectedCategoricalColumn]],
+          }));
+          finalMessage = `Label encoding applied to column ${selectedCategoricalColumn}.`;
+        } else if (encodingMethod === "ordinal encoding") {
+          // Implement Ordinal Encoding
+          const uniqueValues = [
+            ...new Set(
+              encodedContent.map((row) => row[selectedCategoricalColumn])
+            ),
+          ];
+          const ordinalMap = uniqueValues.reduce((acc, value, index) => {
+            acc[value] = index + 1; // Start from 1
+            return acc;
+          }, {});
+          encodedContent = encodedContent.map((row) => ({
+            ...row,
+            [selectedCategoricalColumn]:
+              ordinalMap[row[selectedCategoricalColumn]],
+          }));
+          finalMessage = `Ordinal encoding applied to column ${selectedCategoricalColumn}.`;
+        }
+
+        // Update the table and state with encoded data
+        setFilteredContent(encodedContent);
+        setTable(encodedContent);
+        console.log(encodedContent);
+        console.log(table);
+
+        dispatch(updateFile({ name: file.name, content: encodedContent }));
+
+        setMessages((prevMessages) => [
+          ...prevMessages,
+          { type: "bot", text: initialMessage },
+          { type: "bot", text: finalMessage },
+          {
+            type: "bot",
+            text: "Please select an option from the dropdown below.",
+          },
+        ]);
+
+        setAwaitingEncodingMethod(false); // Exit encoding method selection
+      } else {
+        setMessages((prevMessages) => [
+          ...prevMessages,
+          { type: "bot", text: "Invalid encoding method. Please try again." },
         ]);
       }
       return;
@@ -328,22 +574,18 @@ const ETLModule = (props) => {
     }
 
     if (awaitingOutlierConfirmation) {
-      if (message.toLowerCase() === "yes") {
-        // Prompt for column names to remove outliers
+      if (message === "yes") {
         setMessages((prevMessages) => [
           ...prevMessages,
           {
             type: "bot",
-            text: "Type the name of the columns separated by spaces according to which you want to remove outliers, or type 'all' to remove outliers from all columns.",
+            text: "Select the column from which to remove outliers, or choose 'All Columns' to remove outliers from all columns.",
           },
         ]);
-
-        setAwaitingOutlierColumns(true); // Switch to the column input phase
-        setAwaitingOutlierConfirmation(false); // Exit the outlier confirmation state
-      } else if (message.toLowerCase() === "no") {
-        finalMessage = "Outliers were not removed.";
+        setAwaitingOutlierColumns(true);
         setAwaitingOutlierConfirmation(false);
-
+      } else if (message === "no") {
+        finalMessage = "Outliers were not removed.";
         setMessages((prevMessages) => [
           ...prevMessages,
           { type: "bot", text: finalMessage },
@@ -352,120 +594,75 @@ const ETLModule = (props) => {
             text: "Please select an option from the dropdown below.",
           },
         ]);
-
-        setOutliers({}); // Reset outliers after processing
+        setAwaitingOutlierConfirmation(false);
+        setOutliers({});
       } else {
-        finalMessage = "Invalid input. Please type 'yes' or 'no'.";
-        setAwaitingOutlierConfirmation(true); // Stay in outlier confirmation state
+        finalMessage = "Invalid input. Please select 'yes' or 'no'.";
         setMessages((prevMessages) => [
           ...prevMessages,
           { type: "bot", text: finalMessage },
         ]);
       }
-
-      return; // Exit the function after handling outliers
+      return;
     }
 
+    // Handling outlier removal for all columns or a specific column
     if (awaitingOutlierColumns) {
-      const input = message.toLowerCase().trim();
-
-      if (input === "all") {
+      if (message.toLowerCase() === "all") {
         initialMessage = "Removing outliers from all columns...";
-
-        // Remove rows that contain outliers in any column
-        const updatedContentWithoutOutliers = filteredContent.filter((row) => {
-          return !columns.some((col) => {
-            return outliers[col] && outliers[col].includes(row[col]);
+        // Filter rows that do not contain outliers in any column
+        const filteredData = filteredContent.filter((row) => {
+          return Object.keys(outliers).every((col) => {
+            const value = row[col];
+            return !outliers[col].includes(value);
           });
         });
 
-        console.log(
-          "Updated Content Without Outliers (All):",
-          updatedContentWithoutOutliers
-        );
+        // Ensure filtered data columns remain numerical
+        const cleanedData = filteredData.map((row) => {
+          const newRow = { ...row };
+          Object.keys(outliers).forEach((col) => {
+            if (!isNaN(newRow[col])) {
+              newRow[col] = Number(newRow[col]);
+            }
+          });
+          return newRow;
+        });
 
-        setFilteredContent(updatedContentWithoutOutliers);
-        setTable(updatedContentWithoutOutliers);
-        dispatch(
-          updateFile({
-            name: file.name,
-            content: updatedContentWithoutOutliers,
-          })
-        );
+        setFilteredContent(cleanedData);
+        setTable(cleanedData); // Update the table with filtered data
+        dispatch(updateFile({ name: file.name, content: cleanedData }));
 
         finalMessage = "Outliers removed from all columns.";
       } else {
-        // Split the user input to get selected column names
-        const selectedColumns = input.split(" ").map((col) => col.trim());
-        initialMessage = `Removing outliers from the columns: ${selectedColumns.join(
-          ", "
-        )}`;
-        console.log(`Selected columns : ${selectedColumns}`);
+        const selectedColumn = message.trim();
+        if (outlierColumns.includes(selectedColumn)) {
+          initialMessage = `Removing outliers from column: ${selectedColumn}`;
+          // Filter rows that do not contain outliers in the selected column
+          const filteredData = filteredContent.filter((row) => {
+            const value = row[selectedColumn];
+            return !outliers[selectedColumn].includes(value);
+          });
 
-        // Remove rows that contain outliers in the specified columns
-        const updatedContentWithoutOutliers = filteredContent.filter((row) => {
-          let keepRow = true;
-
-          console.log("Current Row:", row);
-
-          // Normalize selectedColumns to lower case for comparison
-          const normalizedSelectedColumns = selectedColumns.map((col) =>
-            col.toLowerCase()
-          );
-
-          for (const col of normalizedSelectedColumns) {
-            // Normalize actual column names in outliers and row for comparison
-            const actualCol = Object.keys(outliers).find(
-              (key) => key.toLowerCase() === col
-            );
-
-            if (actualCol && row[actualCol] !== undefined) {
-              const cellValue = String(row[actualCol]).trim();
-              const outlierValues = outliers[actualCol].map((value) =>
-                String(value).trim()
-              );
-
-              console.log(`Checking Column: ${actualCol}`);
-              console.log(`Cell Value: '${cellValue}'`);
-              console.log(`Outlier Values: ${outlierValues}`);
-
-              if (outlierValues.includes(cellValue)) {
-                keepRow = false;
-                console.log(
-                  `Row excluded due to outlier in column '${actualCol}': ${cellValue}`
-                );
-                break;
-              }
-            } else {
-              console.log(`Column '${col}' does not exist in outliers or row.`);
+          // Ensure the processed column remains numerical
+          const cleanedData = filteredData.map((row) => {
+            const newRow = { ...row };
+            if (!isNaN(newRow[selectedColumn])) {
+              newRow[selectedColumn] = Number(newRow[selectedColumn]);
             }
-          }
+            return newRow;
+          });
 
-          return keepRow;
-        });
+          setFilteredContent(cleanedData);
+          setTable(cleanedData); // Update the table with filtered data
+          dispatch(updateFile({ name: file.name, content: cleanedData }));
 
-        // Logging the filtered content
-        console.log(
-          "Updated Content Without Outliers:",
-          updatedContentWithoutOutliers
-        );
-
-        // Update state and dispatch the action
-        setFilteredContent(updatedContentWithoutOutliers);
-        setTable(updatedContentWithoutOutliers);
-        dispatch(
-          updateFile({
-            name: file.name,
-            content: updatedContentWithoutOutliers,
-          })
-        );
-
-        finalMessage = `Outliers removed from columns: ${selectedColumns.join(
-          ", "
-        )}.`;
+          finalMessage = `Outliers removed from column: ${selectedColumn}`;
+        } else {
+          finalMessage = "Invalid column name. No outliers removed.";
+        }
       }
 
-      // Send bot messages
       setMessages((prevMessages) => [
         ...prevMessages,
         { type: "bot", text: initialMessage },
@@ -476,8 +673,8 @@ const ETLModule = (props) => {
         },
       ]);
 
-      setOutliers({}); // Reset outliers after processing
-      setAwaitingOutlierColumns(false); // Exit the outlier column input state
+      setAwaitingOutlierColumns(false);
+      setOutliers({});
       return;
     }
 
@@ -492,58 +689,6 @@ const ETLModule = (props) => {
             text: "Please select an option from the dropdown below.",
           },
         ]);
-        return;
-      }
-
-      // Handling column scaling if awaiting for column names
-      if (scalingColumns) {
-        const selectedColumns = message.split(",").map((name) => name.trim());
-        const columnsToScale = selectedColumns.filter((name) =>
-          numericalColumns.includes(name)
-        );
-
-        if (columnsToScale.length > 0) {
-          initialMessage = "Scaling selected columns...";
-          const scaledContent = filteredContent.map((row) => {
-            const newRow = { ...row };
-            columnsToScale.forEach((col) => {
-              const values = filteredContent
-                .map((r) => r[col])
-                .filter((v) => typeof v === "number");
-              const colMean = mean(values);
-              const colStdDev = stdDev(values);
-              newRow[col] = zScoreScale(row[col], colMean, colStdDev).toFixed(
-                2
-              );
-            });
-            return newRow;
-          });
-
-          finalMessage = "Columns scaled.";
-
-          setFilteredContent(scaledContent);
-          setTable(scaledContent);
-          setAwaitingColumnInput(false);
-          setScalingColumns(false);
-
-          dispatch(updateFile({ name: file.name, content: table }));
-
-          setMessages((prevMessages) => [
-            ...prevMessages,
-            { type: "bot", text: initialMessage },
-            { type: "bot", text: finalMessage },
-            {
-              type: "bot",
-              text: "Please select an option from the dropdown below.",
-            },
-          ]);
-        } else {
-          finalMessage = "Invalid column names. No columns scaled.";
-          setMessages((prevMessages) => [
-            ...prevMessages,
-            { type: "bot", text: finalMessage },
-          ]);
-        }
         return;
       }
 
@@ -594,7 +739,7 @@ const ETLModule = (props) => {
           text: "Please select an option from the dropdown below.",
         },
       ]);
-    } else if (message === "Show Info About Columns") {
+    } else if (message === "Column Summary & Editor") {
       initialMessage = "Gathering information about columns...";
       finalMessage = "Here is the information about the columns:";
 
@@ -620,20 +765,20 @@ const ETLModule = (props) => {
           text: "If you want to change the data type of any column, write it as - {column name} : {dtype:}, or type 'no' to skip.",
         },
       ]);
-    } else if (message === "Provide a snapshot of the data") {
+    }else if (message === "Provide a snapshot of the data") {
       const initialMessage = "Fetching a snapshot of the data...";
-
+    
       // Show the first 5 rows of the data as a snapshot
       const snapshot = filteredContent.slice(0, 5);
       const tableHeaders = Object.keys(filteredContent[0]);
-
+    
       // Create table for the data snapshot
-      let snapshotTable = `<table border="1" cellpadding="5" cellspacing="0"><thead><tr>`;
+      let snapshotTable = `<table class="data-table" cellpadding="5" cellspacing="0"><thead><tr>`;
       tableHeaders.forEach((header) => {
         snapshotTable += `<th>${header}</th>`;
       });
       snapshotTable += `</tr></thead><tbody>`;
-
+    
       // Generate rows for the snapshot table
       snapshot.forEach((row) => {
         snapshotTable += `<tr>`;
@@ -643,7 +788,7 @@ const ETLModule = (props) => {
         snapshotTable += `</tr>`;
       });
       snapshotTable += `</tbody></table>`;
-
+    
       // Provide column info (e.g., name, non-null counts, data types)
       const columnInfo = tableHeaders.map((col) => {
         const nonNullValues = filteredContent.filter(
@@ -651,36 +796,37 @@ const ETLModule = (props) => {
         ).length;
         return { col, nonNullValues, dataType: typeof filteredContent[0][col] };
       });
-
-      // Create summary table
-      let summaryTable = `
-        <table border="1" cellpadding="5" cellspacing="0">
+    
+      // Create column info table (matching the snapshot table's structure and styles)
+      let columnInfoTable = `
+        <table class="data-table" cellpadding="5" cellspacing="0" style="border: 1px solid #ddd; border-collapse: collapse;">
           <thead>
             <tr>
-              <th>Column</th>
-              <th>Non-null Count</th>
-              <th>Data Type</th>
+              <th style="border: 1px solid #ddd;padding: 10px">Column</th>
+              <th style="border: 1px solid #ddd;padding: 10px">Non-null Count</th>
+              <th style="border: 1px solid #ddd;padding: 10px">Data Type</th>
             </tr>
           </thead>
           <tbody>`;
-
+    
       columnInfo.forEach(({ col, nonNullValues, dataType }) => {
-        summaryTable += `
+        columnInfoTable += `
           <tr>
-            <td>${col}</td>
-            <td>${nonNullValues}</td>
-            <td>${dataType}</td>
+            <td style="border: 1px solid #ddd;padding: 10px">${col}</td>
+            <td style="border: 1px solid #ddd;padding: 10px">${nonNullValues}</td>
+            <td style="border: 1px solid #ddd;padding: 10px">${dataType}</td>
           </tr>`;
       });
-
-      summaryTable += `
-          </tbody>
-        </table>`;
-
+    
+      columnInfoTable += `</tbody></table>`;
+    
+      // Wrap the column info table with a div that has overflow-x: auto;
+      const columnInfoWithScroll = `<div style="overflow-x: auto; margin: 10px 0; max-width: 100%;">${columnInfoTable}</div>`;
+    
       // Infer domain and sector
       const sectorInfo =
         "This dataset appears to contain general tabular data. It may be applicable to sectors such as finance, healthcare, retail, or other data-driven domains depending on the columns and values.";
-
+    
       // Send messages to the chat
       setMessages((prevMessages) => [
         ...prevMessages,
@@ -688,16 +834,18 @@ const ETLModule = (props) => {
         { type: "bot", text: "Here is a snapshot of the data:" },
         { type: "bot", text: snapshotTable }, // Sending the snapshot table
         { type: "bot", text: "Column Information:" },
-        { type: "bot", text: summaryTable }, // Sending the summary table
+        { type: "bot", text: columnInfoWithScroll }, // Sending the column info table wrapped in a div with scroll
         { type: "bot", text: sectorInfo },
         {
           type: "bot",
           text: "Please select an option from the dropdown below.",
         },
       ]);
-
+    
       return; // Exit after handling this option
-    } else if (message === "Remove NA/Null/Empty Values") {
+    }
+    
+    else if (message === "Remove NA/Null/Empty Values") {
       initialMessage = "Checking for rows with null/empty values...";
 
       // Identify rows with null or empty values
@@ -717,7 +865,7 @@ const ETLModule = (props) => {
         const nullRowMessages = rowsWithNulls.map(
           (row, index) => `Row ${index + 1}: ${JSON.stringify(row)}`
         );
-        finalMessage = `Found ${rowsWithNulls.length} rows with null/empty values. Do you want to delete them? Type 'yes' or 'no'.`;
+        finalMessage = `Found ${rowsWithNulls.length} rows with null/empty values. Do you want to delete them?`;
 
         setMessages((prevMessages) => [
           ...prevMessages,
@@ -773,6 +921,7 @@ const ETLModule = (props) => {
     } else if (message === "Remove Outliers") {
       initialMessage = "Detecting outliers in the data...";
       const columnsWithOutliers = {};
+      const outlier_with_columns = [];
 
       // Detect outliers in each column
       columns.forEach((col) => {
@@ -788,8 +937,10 @@ const ETLModule = (props) => {
         );
         if (outliersInColumn.length > 0) {
           columnsWithOutliers[col] = outliersInColumn;
+          outlier_with_columns.push(col);
         }
       });
+      setOutlierColumns(outlier_with_columns);
 
       if (Object.keys(columnsWithOutliers).length > 0) {
         setAwaitingOutlierConfirmation(true);
@@ -828,6 +979,7 @@ const ETLModule = (props) => {
 
       if (numericalCols.length > 0) {
         setNumericalColumns(numericalCols);
+        setAwaitingScaleColumn(true); // Activate dropdown for scaling
 
         const numericalMessages = numericalCols.map((col, index) => {
           return `${index + 1}. ${col}`;
@@ -839,23 +991,60 @@ const ETLModule = (props) => {
           ...numericalMessages.map((msg) => ({ type: "bot", text: msg })),
           {
             type: "bot",
-            text: "Do you want to scale columns? Please enter the names of the columns you want to scale, separated by commas else type 'no' to skip.",
+            text: "Please select a column to scale.",
           },
         ]);
 
         setTable(updatedContent);
         dispatch(updateFile({ name: file.name, content: table }));
-
-        setAwaitingColumnInput(true);
-        setScalingColumns(true);
       } else {
         setMessages((prevMessages) => [
           ...prevMessages,
           { type: "bot", text: "No numerical columns found to scale." },
+        ]);
+      }
+    } else if (awaitingScaleColumn && message) {
+      const selectedColumn = message.trim();
+      if (numericalColumns.includes(selectedColumn)) {
+        initialMessage = "Scaling selected column...";
+        const scaledContent = filteredContent.map((row) => {
+          const newRow = { ...row };
+          const values = filteredContent
+            .map((r) => r[selectedColumn])
+            .filter((v) => typeof v === "number");
+
+          const colMean = mean(values);
+          const colStdDev = stdDev(values);
+
+          // Scale and parse back to number
+          newRow[selectedColumn] = parseFloat(
+            zScoreScale(row[selectedColumn], colMean, colStdDev).toFixed(2)
+          );
+
+          return newRow;
+        });
+
+        finalMessage = "Column scaled.";
+        setFilteredContent(scaledContent);
+        setTable(scaledContent);
+        setAwaitingScaleColumn(false); // Reset dropdown state
+
+        dispatch(updateFile({ name: file.name, content: table }));
+
+        setMessages((prevMessages) => [
+          ...prevMessages,
+          { type: "bot", text: initialMessage },
+          { type: "bot", text: finalMessage },
           {
             type: "bot",
             text: "Please select an option from the dropdown below.",
           },
+        ]);
+      } else {
+        finalMessage = "Invalid column name. No column scaled.";
+        setMessages((prevMessages) => [
+          ...prevMessages,
+          { type: "bot", text: finalMessage },
         ]);
       }
     } else if (message === "Exit") {
@@ -1066,7 +1255,7 @@ const ETLModule = (props) => {
               "Provide a snapshot of the data",
               "Remove NA/Null/Empty Values",
               "Remove Duplicates",
-              "Show Info About Columns",
+              "Column Summary & Editor",
               "Remove Outliers",
               "Scale Columns",
               "Encode Categorical Columns",
@@ -1082,6 +1271,10 @@ const ETLModule = (props) => {
             awaitingEncodingMethod={awaitingEncodingMethod}
             selectedCategoricalColumn={selectedCategoricalColumn}
             categoricalColumns={categoricalColumns}
+            outlierColumns={outlierColumns}
+            numericalColumns={numericalColumns}
+            awaitingScaleColumn={awaitingScaleColumn}
+            setAwaitingScaleColumn={setAwaitingScaleColumn}
           />
         )}
       </div>

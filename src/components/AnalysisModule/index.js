@@ -1,6 +1,9 @@
 import React, { useRef, useState } from "react";
 import { useSelector } from "react-redux";
-import { MdOutlineStackedBarChart } from "react-icons/md";
+import {
+  MdOutlineStackedBarChart,
+  MdHorizontalDistribute,
+} from "react-icons/md";
 import { FaChartBar, FaChartArea, FaChartPie, FaFilter } from "react-icons/fa";
 import { FaTableCells } from "react-icons/fa6";
 import { AiOutlineLineChart } from "react-icons/ai";
@@ -29,6 +32,7 @@ import jsPDF from "jspdf";
 import "./index.css";
 import XYColumnSelectionPopup from "../XYColumnSelectionPopup";
 import TableInputPopup from "../TableInputPopup";
+import ProbabilityDistributionChart from "../ProbabilityDistributionChart/ProbabilityDistributionChart";
 
 // Register the required components for Chart.js
 ChartJS.register(
@@ -57,6 +61,16 @@ const AnalysisModule = () => {
   const [mergedTableData, setMergedTableData] = useState(file?.content || []); // State for the merged table
   const [isTablePopupVisible, setIsTablePopupVisible] = useState(false);
   const [newTable, setNewTable] = useState({ rows: 0, columns: 0, data: [] });
+
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false); //probability distribution
+  const [selectedColumn, setSelectedColumn] = useState(null);
+  const [probabilityDistribution, setProbabilityDistribution] = useState([]);
+  const [isDistributionVisible, setIsDistributionVisible] = useState(false);
+
+  const [isCategorical, setIsCategorical] = useState(false);
+  const [remainingColumns, setRemainingColumns] = useState([]);
+  const [selectedColumnsForAggregation, setSelectedColumnsForAggregation] =
+    useState([]);
 
   const aggregateResultsRef = useRef(null);
   const analysisRef = useRef();
@@ -99,6 +113,90 @@ const AnalysisModule = () => {
 
   const backBtn = () => {
     window.history.back();
+  };
+
+  // Function to toggle the dropdown menu
+  const toggleDropdown = () => {
+    setIsDistributionVisible(false);
+    setIsDropdownOpen(!isDropdownOpen);
+  };
+
+  const categoricalColumnsList = file
+    ? Object.keys(file.categoricalColumns)
+    : [];
+
+  console.log(file);
+
+  // Function to calculate discrete probability distribution for categorical columns
+  const calculateDiscreteDistribution = (column) => {
+    const originalCategories = file.originalCategories;
+    console.log(`original cateogirwes` + originalCategories);
+    const values = file.content.map((row) => row[column]);
+    const valueCounts = {};
+
+    values.forEach((value) => {
+      valueCounts[value] = (valueCounts[value] || 0) + 1;
+    });
+
+    const totalValues = values.length;
+    const distribution = Object.entries(valueCounts).map(([value, count]) => ({
+      value,
+      probability: count / totalValues,
+    }));
+
+    setProbabilityDistribution(distribution);
+    setSelectedColumn(column);
+    setIsDistributionVisible(true);
+  };
+
+  // Function to calculate continuous probability distribution for numerical columns
+  const calculateContinuousDistribution = (column) => {
+    const values = file.content
+      .map((row) => parseFloat(row[column]))
+      .filter((v) => !isNaN(v));
+    const min = Math.min(...values);
+    const max = Math.max(...values);
+    const numBins = 10; // You can make this configurable for flexibility
+    const binSize = (max - min) / numBins;
+
+    // Group values into bins
+    const bins = Array(numBins).fill(0);
+    values.forEach((value) => {
+      const binIndex = Math.min(
+        Math.floor((value - min) / binSize),
+        numBins - 1
+      );
+      bins[binIndex]++;
+    });
+
+    const totalValues = values.length;
+
+    // Create a meaningful distribution object
+    const distribution = bins.map((count, index) => {
+      const binStart = min + index * binSize;
+      const binEnd = binStart + binSize;
+      return {
+        value: `${binStart.toFixed(2)} - ${binEnd.toFixed(2)}`,
+        probability: count / totalValues,
+        count, // Add count for additional insights if needed
+      };
+    });
+
+    setProbabilityDistribution(distribution);
+    setSelectedColumn(column);
+    setIsDistributionVisible(true);
+  };
+
+  // Handle selection of a column
+  const handleSelectColumn = (column, isCategorical) => {
+    if (isCategorical) {
+      calculateDiscreteDistribution(column);
+    } else {
+      calculateContinuousDistribution(column);
+    }
+    setIsDropdownOpen(false); // Close dropdown after selection
+    setSelectedColumn(column);
+    setIsCategorical(isCategorical);
   };
 
   const handleDrop = (item) => {
@@ -180,7 +278,6 @@ const AnalysisModule = () => {
     updatedData[rowIndex][colIndex] = value;
     setNewTable({ ...newTable, data: updatedData });
   };
-
 
   // Render function to render different types of charts
   const renderChart = (chart, index) => {
@@ -357,22 +454,47 @@ const AnalysisModule = () => {
     setCharts([]);
   };
 
-  const handlePopupSubmit = (columns) => {
-    // Filter the selected columns to include only string columns for aggregation
-    const stringColumns = columns.filter((column) => {
-      return file.columnTypes[column] === "string";
-    });
+  const handlePopupSubmit = (column) => {
+    if (selectedFunction === "count") {
+      // For "count", process immediately with selected column(s)
+      calculateAggregate(selectedFunction, [column]);
+      setIsPopupVisible(false);
 
-    // Proceed with the aggregation if there are string columns selected
-    if (stringColumns.length > 0) {
-      setColumnsToSelect(stringColumns);
-      console.log(`handlePopupSubmit: ${stringColumns}`);
-
-      // Perform the aggregation based on the selected function and string columns
-      calculateAggregate(selectedFunction, stringColumns);
-    } else {
-      console.error("No string columns selected for aggregation.");
+      if (aggregateResultsRef.current) {
+        aggregateResultsRef.current.scrollIntoView({ behavior: "smooth" });
+      }
+      return;
     }
+  
+    if (isCategorical) {
+      // Step 1: Categorical column selected, proceed to numerical column selection
+      setSelectedColumn(column);
+      setIsCategorical(false); // Move to numerical column selection
+      const numericalColumns = getNumericalColumns(); // Assume this retrieves numerical columns
+      setColumnsToSelect(numericalColumns);
+    } else {
+      // Step 2: Numerical column selected, finalize aggregation
+      const updatedColumns = [...selectedColumnsForAggregation, column];
+      setSelectedColumnsForAggregation(updatedColumns);
+  
+      // Perform aggregation
+      calculateAggregate(selectedFunction, updatedColumns);
+      setIsPopupVisible(false);
+
+      // Scroll to the results section
+      if (aggregateResultsRef.current) {
+        aggregateResultsRef.current.scrollIntoView({ behavior: "smooth" });
+      }
+    }
+};
+
+
+  const handlePopupCancel = () => {
+    // Skip further column selection and proceed with current selections
+    if (selectedColumnsForAggregation.length > 0) {
+      calculateAggregate(selectedFunction, selectedColumnsForAggregation);
+    }
+    setIsPopupVisible(false);
   };
 
   const calculateAggregate = (func, columns) => {
@@ -381,81 +503,73 @@ const AnalysisModule = () => {
       return;
     }
 
-    if (!Array.isArray(columns) || columns.length === 0) {
-      console.error("No columns selected");
+    if (!columns || columns.length === 0) {
+      console.error("No columns selected for aggregation");
       return;
     }
 
-    console.log(`Performing ${func} on columns: `, columns);
-
-    // Create a map to group by the selected categorical column (e.g., Birthplace)
-    const groupedData = {};
-
-    file.content.forEach((row) => {
-      const key = columns.map((col) => row[col]).join("_"); // Combine the values of the selected columns as key
-      if (!groupedData[key]) {
-        groupedData[key] = [];
-      }
-      groupedData[key].push(row); // Add each row to the corresponding group
-    });
-
-    // Calculate aggregate function for each group
-    const results = Object.keys(groupedData).map((group) => {
-      const rows = groupedData[group]; // Rows in the current group
-      const numericalColumns = getNumericalColumns(); // Get numerical columns
-
-      // Initialize aggregate results for each numerical column
-      const aggregates = {};
-
-      numericalColumns.forEach((numCol) => {
-        const values = rows
-          .map((row) => row[numCol])
-          .filter((v) => typeof v === "number");
-
-        let result;
-        switch (func) {
-          case "count":
-            result = values.length;
-            break;
-          case "sum":
-            result = values.reduce((sum, value) => sum + value, 0);
-            break;
-          case "min":
-            result = Math.min(...values);
-            break;
-          case "max":
-            result = Math.max(...values);
-            break;
-          case "average":
-            result =
-              values.reduce((sum, value) => sum + value, 0) / values.length;
-            break;
-          default:
-            console.error("Unsupported function selected");
-            result = null;
-        }
-
-        aggregates[numCol] = result; // Store the aggregate result for this column
+    if (func === "count") {
+      const groupedData = {};
+      file.content.forEach((row) => {
+        const key = columns.map((col) => row[col]).join("_");
+        groupedData[key] = (groupedData[key] || 0) + 1;
       });
 
+      const results = Object.entries(groupedData).map(([group, count]) => ({
+        group,
+        count,
+      }));
+
+      setAggregateResults(results);
+      return;
+    }
+
+    const groupedData = {};
+    file.content.forEach((row) => {
+      const key = [row[selectedColumn]].join("_");
+      groupedData[key] = groupedData[key] || [];
+      groupedData[key].push(row);
+    });
+
+    const results = Object.entries(groupedData).map(([group, rows]) => {
+      const aggregates = {};
+      columns.forEach((numCol) => {
+        const values = rows.map((row) => row[numCol]).filter((v) => !isNaN(v));
+        aggregates[numCol] = calculateAggregateFunction(values, func);
+      });
       return { group, aggregates };
     });
 
     setAggregateResults(results);
-    console.log("Aggregate Results:", results);
+  };
 
-    if (aggregateResultsRef.current) {
-      aggregateResultsRef.current.scrollIntoView({ behavior: "smooth" });
-    } else {
-      console.error("aggregateResultsRef.current is null");
+  const calculateAggregateFunction = (values, func) => {
+    switch (func) {
+      case "sum":
+        return values.reduce((sum, v) => sum + v, 0);
+      case "average":
+        return values.length > 0
+          ? values.reduce((sum, v) => sum + v, 0) / values.length
+          : null;
+      case "min":
+        return Math.min(...values);
+      case "max":
+        return Math.max(...values);
+      default:
+        return null;
     }
   };
 
   const handleDropdownChange = (event) => {
     const selectedFunc = event.target.value;
+
     if (selectedFunc) {
       setSelectedFunction(selectedFunc);
+      const categoricalColumns = getStringColumns(); // Get categorical columns
+      setColumnsToSelect(categoricalColumns);
       setIsPopupVisible(true);
+      setIsCategorical(true); // Set this flag to show categorical column selection first
+      setSelectedColumnsForAggregation([]); // Reset selected columns for aggregation
     }
   };
 
@@ -674,6 +788,12 @@ const AnalysisModule = () => {
                       >
                         <FaTableCells />
                       </div>
+                      <div
+                        className="filter-container"
+                        onClick={toggleDropdown}
+                      >
+                        <MdHorizontalDistribute size={25} />
+                      </div>
                     </div>
                   </div>
 
@@ -730,9 +850,17 @@ const AnalysisModule = () => {
 
                 {isPopupVisible && (
                   <SelectColumnsPopup
-                    columns={getStringColumns()}
+                    columns={
+                      isCategorical ? getStringColumns() : getNumericalColumns()
+                    } // Conditionally pass columns based on the current step
                     onSubmit={handlePopupSubmit}
-                    onClose={handlePopupClose}
+                    onClose={handlePopupCancel} // Optionally handle canceling in different steps
+                    isCategoricalStep={isCategorical} // Optional: track the step in the popup if needed for logic
+                    title={
+                      isCategorical
+                        ? "Select Categorical Column"
+                        : "Select Numerical Column"
+                    } // Dynamic title based on step
                   />
                 )}
 
@@ -864,6 +992,86 @@ const AnalysisModule = () => {
                   </div>
                 )}
 
+                {isDropdownOpen && (
+                  <div className="dropdown">
+                    <h4>Categorical Columns</h4>
+                    <ul>
+                      {categoricalColumnsList.length > 0 ? (
+                        categoricalColumnsList.map((column) => (
+                          <li
+                            key={column}
+                            className="cursor-pointer"
+                            onClick={() => handleSelectColumn(column, true)}
+                          >
+                            {column}
+                          </li>
+                        ))
+                      ) : (
+                        <li>No categorical columns available.</li>
+                      )}
+                    </ul>
+                    <h4>Numerical Columns</h4>
+                    {console.log(Object.keys(file.columnTypes))}
+                    <ul>
+                      {Object.keys(file.columnTypes).map((column) =>
+                        file.columnTypes[column] === "number" ? (
+                          <li
+                            key={column}
+                            className="cursor-pointer"
+                            onClick={() => handleSelectColumn(column, false)}
+                          >
+                            {column}
+                          </li>
+                        ) : null
+                      )}
+                    </ul>
+                  </div>
+                )}
+
+                {/* Display probability distribution */}
+                {isDistributionVisible && (
+                  <div className="analysis-probability-display">
+                    <h2>Probability Distribution for {selectedColumn}</h2>
+                    <div className="analysis-scrollable-table">
+                      <table className="analysis-probability-distribution-table">
+                        <thead>
+                          <tr>
+                            <th>Value</th>
+                            <th>Probability</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {probabilityDistribution.map((item, index) => (
+                            <tr key={index}>
+                              <td>
+                                {isCategorical && file.originalCategories
+                                  ? file.originalCategories[selectedColumn]?.[
+                                      item.value
+                                    ] || item.value
+                                  : item.value}
+                              </td>
+                              <td>{(item.probability * 100).toFixed(2)}%</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                    <div className="analysis-distribution-chart-container">
+                      <ProbabilityDistributionChart
+                        data={probabilityDistribution}
+                        containerHeight="300px"
+                        containerWidth="100%"
+                        isCategorical={isCategorical} // Pass the isCategorical flag
+                        originalCategories={
+                          isCategorical && file.originalCategories
+                            ? file.originalCategories[selectedColumn]
+                            : null
+                        } // Pass original categories if available
+                      />
+                    </div>
+                  </div>
+                )}
+
                 <div className="lower-section" ref={aggregateResultsRef}>
                   {aggregateResults.length > 0 && (
                     <div className="aggregate-results-container">
@@ -871,17 +1079,42 @@ const AnalysisModule = () => {
                       <table className="aggregate-results-table">
                         <thead>
                           <tr>
-                            <th>Group</th>
-                            <th>Column</th>
-                            <th>Result</th>
+                            <th>Category</th>
+                            {selectedFunction === "count" ? (
+                              <th>Count</th>
+                            ) : (
+                              <>
+                                <th>Column</th>
+                                <th>Result</th>
+                              </>
+                            )}
                           </tr>
                         </thead>
                         <tbody>
                           {aggregateResults.map((result, index) => {
-                            const groupKey = result.group; // Get the group from the result
-                            const aggregates = result.aggregates; // Access the aggregates object
+                            // Always display the original category
+                            const originalCategory =
+                              isCategorical &&
+                              file.originalCategories &&
+                              file.originalCategories[selectedColumn]
+                                ? file.originalCategories[selectedColumn][
+                                    result.group
+                                  ] || result.group // Fallback to encoded category if original is not found
+                                : result.group; // For cases where isCategorical is false, just use the group
 
-                            // Ensure aggregates is defined and is an object
+                            // Display count results (if the selected function is 'count')
+                            if (selectedFunction === "count") {
+                              return (
+                                <tr key={index}>
+                                  <td>{originalCategory}</td>
+                                  <td>{result.count}</td>
+                                </tr>
+                              );
+                            }
+
+                            const aggregates = result.aggregates;
+
+                            // Display results for other aggregate functions
                             return aggregates &&
                               typeof aggregates === "object" ? (
                               Object.entries(aggregates).map(
@@ -890,16 +1123,20 @@ const AnalysisModule = () => {
                                   groupIndex
                                 ) => (
                                   <tr key={`${index}-${groupIndex}`}>
-                                    <td>{groupKey}</td>
+                                    <td>{originalCategory}</td>
                                     <td>{aggregateColumn}</td>
-                                    <td>{aggregateValue}</td>
+                                    <td>
+                                      {aggregateValue !== null
+                                        ? aggregateValue
+                                        : "N/A"}
+                                    </td>
                                   </tr>
                                 )
                               )
                             ) : (
                               <tr key={index}>
                                 <td colSpan={3}>
-                                  No data available for {result.columnName}
+                                  No data available for {result.group}
                                 </td>
                               </tr>
                             );

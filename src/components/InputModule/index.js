@@ -158,18 +158,19 @@ const InputModule = (props) => {
               Problem Identification: Study of input data belonging to different
               domains
             </h1>
-            <h2>Objectives of building a Data Science pipeline:</h2>
+            <h2>Objectives of Building a Data Science Pipeline:</h2>
             <ul>
               <li>
                 <strong>Data Integration and Aggregation</strong>
                 <ul>
                   <li>
-                    <em>Objective:</em> Ensure seamless integration of data from
-                    diverse sources.
+                    <em>Objective:</em> Seamlessly integrate and aggregate data
+                    from diverse sources, ensuring it’s structured for analysis.
                   </li>
                   <li>
-                    <em>Benefit:</em> Provides a unified view of data, enabling
-                    comprehensive analysis and insights.
+                    <em>Benefit:</em> Provides a comprehensive and unified view
+                    of data, facilitating advanced analysis and accurate
+                    insights.
                   </li>
                 </ul>
               </li>
@@ -177,12 +178,29 @@ const InputModule = (props) => {
                 <strong>Data Cleaning and Preprocessing</strong>
                 <ul>
                   <li>
-                    <em>Objective:</em> Standardize and clean data to ensure
-                    consistency and quality.
+                    <em>Objective:</em> Standardize, clean, and preprocess data
+                    by handling missing values, encoding categorical columns,
+                    and transforming features.
                   </li>
                   <li>
-                    <em>Benefit:</em> Improves the accuracy and reliability of
-                    the analysis by removing noise and errors.
+                    <em>Benefit:</em> Improves the consistency, reliability, and
+                    quality of data, leading to more accurate analysis and model
+                    performance.
+                  </li>
+                </ul>
+              </li>
+              <li>
+                <strong>Exploratory Data Analysis (EDA)</strong>
+                <ul>
+                  <li>
+                    <em>Objective:</em> Provide interactive data analysis
+                    through visualizations, including probability distributions
+                    of encoded categorical columns and descriptive statistics.
+                  </li>
+                  <li>
+                    <em>Benefit:</em> Helps identify patterns, trends, and
+                    anomalies, empowering data-driven decisions and model
+                    development.
                   </li>
                 </ul>
               </li>
@@ -190,12 +208,14 @@ const InputModule = (props) => {
                 <strong>Scalability</strong>
                 <ul>
                   <li>
-                    <em>Objective:</em> Design the pipeline to handle large
-                    volumes of data efficiently.
+                    <em>Objective:</em> Design the pipeline to efficiently
+                    handle large datasets with complex transformations and
+                    computations.
                   </li>
                   <li>
-                    <em>Benefit:</em> Ensures the system can grow with
-                    increasing data size without degradation in performance.
+                    <em>Benefit:</em> Ensures that the pipeline can scale
+                    seamlessly with growing data volumes while maintaining
+                    performance and accuracy.
                   </li>
                 </ul>
               </li>
@@ -203,12 +223,13 @@ const InputModule = (props) => {
                 <strong>Flexibility and Modularity</strong>
                 <ul>
                   <li>
-                    <em>Objective:</em> Create a modular architecture that can
-                    easily accommodate new data sources and analysis methods.
+                    <em>Objective:</em> Build a flexible and modular pipeline
+                    that allows easy updates, integration of new data sources,
+                    and the inclusion of various analysis techniques.
                   </li>
                   <li>
-                    <em>Benefit:</em> Enhances the adaptability of the pipeline
-                    to evolving business needs and technological advancements.
+                    <em>Benefit:</em> Supports evolving business needs, making
+                    the pipeline adaptable to new requirements and technologies.
                   </li>
                 </ul>
               </li>
@@ -216,25 +237,29 @@ const InputModule = (props) => {
                 <strong>Automation</strong>
                 <ul>
                   <li>
-                    <em>Objective:</em> Automate repetitive tasks such as data
-                    extraction, transformation, and loading (ETL).
+                    <em>Objective:</em> Automate key tasks such as ETL (data
+                    extraction, transformation, and loading), data
+                    visualization, and report generation.
                   </li>
                   <li>
-                    <em>Benefit:</em> Reduces manual effort, speeds up the data
-                    processing cycle, and minimizes human errors.
+                    <em>Benefit:</em> Reduces manual intervention, streamlines
+                    the data processing flow, and accelerates insights
+                    generation.
                   </li>
                 </ul>
               </li>
               <li>
-                <strong>Reproducibility</strong>
+                <strong>Reproducibility and Auditing</strong>
                 <ul>
                   <li>
-                    <em>Objective:</em> Ensure that the data processing steps
-                    are reproducible and can be easily traced and audited.
+                    <em>Objective:</em> Ensure that all data processing,
+                    analysis, and transformation steps are reproducible and
+                    auditable.
                   </li>
                   <li>
-                    <em>Benefit:</em> Enhances the credibility and reliability
-                    of the analytical results.
+                    <em>Benefit:</em> Enhances data integrity and supports
+                    transparent, traceable results, making it easier to validate
+                    and audit the analysis pipeline.
                   </li>
                 </ul>
               </li>
@@ -242,12 +267,14 @@ const InputModule = (props) => {
                 <strong>Real-time Processing</strong>
                 <ul>
                   <li>
-                    <em>Objective:</em> Incorporate capabilities for real-time
-                    data processing and analytics.
+                    <em>Objective:</em> Incorporate real-time processing
+                    capabilities to handle live data streams and perform
+                    on-the-fly analytics.
                   </li>
                   <li>
-                    <em>Benefit:</em> Enables timely insights and
-                    decision-making based on the most current data.
+                    <em>Benefit:</em> Enables immediate insights and dynamic
+                    decision-making based on the most current data, crucial for
+                    time-sensitive operations.
                   </li>
                 </ul>
               </li>
@@ -255,14 +282,14 @@ const InputModule = (props) => {
                 <strong>Security and Compliance</strong>
                 <ul>
                   <li>
-                    <em>Objective:</em> Implement robust security measures to
-                    protect data privacy and ensure compliance with relevant
-                    regulations.
+                    <em>Objective:</em> Implement strong security protocols to
+                    protect sensitive data and ensure the pipeline complies with
+                    relevant data protection laws and regulations.
                   </li>
                   <li>
-                    <em>Benefit:</em> Safeguards sensitive information and
-                    maintains regulatory adherence, thereby building trust with
-                    stakeholders.
+                    <em>Benefit:</em> Safeguards privacy and ensures compliance,
+                    building trust with stakeholders and maintaining ethical
+                    standards.
                   </li>
                 </ul>
               </li>
@@ -270,12 +297,14 @@ const InputModule = (props) => {
                 <strong>Visualization and Reporting</strong>
                 <ul>
                   <li>
-                    <em>Objective:</em> Develop tools and dashboards for
-                    effective data visualization and reporting.
+                    <em>Objective:</em> Develop advanced data visualizations,
+                    summaries, and interactive reports, providing clear insights
+                    into the analysis results.
                   </li>
                   <li>
-                    <em>Benefit:</em> Facilitates better understanding and
-                    communication of data insights to stakeholders.
+                    <em>Benefit:</em> Facilitates better understanding of data
+                    patterns and insights, making it easier for stakeholders to
+                    interpret and act upon the findings.
                   </li>
                 </ul>
               </li>
@@ -283,16 +312,19 @@ const InputModule = (props) => {
                 <strong>Performance Monitoring and Maintenance</strong>
                 <ul>
                   <li>
-                    <em>Objective:</em> Set up mechanisms for continuous
-                    monitoring and maintenance of the pipeline's performance.
+                    <em>Objective:</em> Establish continuous monitoring to track
+                    the pipeline’s performance, ensuring data quality and
+                    analysis accuracy.
                   </li>
                   <li>
-                    <em>Benefit:</em> Ensures the pipeline remains efficient,
-                    reliable, and up-to-date with minimal downtime.
+                    <em>Benefit:</em> Ensures the pipeline operates efficiently
+                    with minimal downtime, preventing issues before they impact
+                    data processing or analysis.
                   </li>
                 </ul>
               </li>
             </ul>
+
             <h2>Take Input</h2>
             <div>
               <label>Select Input Method:</label>

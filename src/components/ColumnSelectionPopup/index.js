@@ -1,41 +1,40 @@
-import React, { useState } from 'react';
-import './index.css'; // Ensure this path is correct for your CSS file
+import React, { useState } from "react";
+import "./index.css";
 
-const SelectColumnsPopup = ({ columns, onSubmit, onClose }) => {
-  const [selectedColumns, setSelectedColumns] = useState([]);
-
-  const handleCheckboxChange = (columnName) => {
-    setSelectedColumns((prev) =>
-      prev.includes(columnName)
-        ? prev.filter((col) => col !== columnName)
-        : [...prev, columnName]
-    );
+const SelectColumnsPopup = ({ columns, onSubmit, onClose, isCategoricalStep, title }) => {
+  const [selectedColumn, setSelectedColumn] = useState("");
+  
+  const handleColumnChange = (event) => {
+    setSelectedColumn(event.target.value);
   };
 
   const handleSubmit = () => {
-    onSubmit(selectedColumns);
-    onClose();
+    if (selectedColumn) {
+      onSubmit(selectedColumn);
+    }
   };
 
   return (
     <div className="popup-overlay">
       <div className="popup-content">
-        <h3>Select Columns for Aggregation</h3>
-        <div className="columns-list">
-          {columns.map((col) => (
-            <div key={col}>
-              <input
-                type="checkbox"
-                checked={selectedColumns.includes(col)}
-                onChange={() => handleCheckboxChange(col)}
-              />
-              <label>{col}</label>
-            </div>
-          ))}
+        <h3>{title}</h3>
+        <div className="dropdown-container">
+          <select value={selectedColumn} onChange={handleColumnChange}>
+            <option value="">Select a column</option>
+            {columns.map((col) => (
+              <option key={col} value={col}>
+                {col}
+              </option>
+            ))}
+          </select>
         </div>
-        <div className='buttons-group-popup'>
-        <button className="submit-btn" onClick={handleSubmit}>Submit</button>
-        <button className="close-btn" onClick={onClose}>Close</button>
+        <div className="buttons-group-popup">
+          <button className="submit-btn" onClick={handleSubmit}>
+            OK
+          </button>
+          <button className="close-btn" onClick={onClose}>
+            Cancel
+          </button>
         </div>
       </div>
     </div>
