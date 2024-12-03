@@ -11,6 +11,7 @@ import NotFound from "./components/NotFound";
 import ProtectedRoute from "./components/ProtectedRoute";
 import DndProviderWrapper from "./components/DndProvider";
 import ETLModule from "./components/ETLModule";
+import Dashboard from "./components/Dashboard";
 
 function App() {
   const [state, changeState] = useState({
@@ -53,6 +54,7 @@ function App() {
             render={(props) => <ViewModule {...props} state={state} />}
           />
           <ProtectedRoute exact path="/analysis" component={AnalysisModule} />
+          <ProtectedRoute exact path="/dashboard" component={Dashboard} />
           <Route path="*" component={NotFound} />
         </Switch>
       </DndProviderWrapper>

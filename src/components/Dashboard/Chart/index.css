@@ -1,0 +1,56 @@
+/* dashboard.css */
+.chart {
+    padding: 10px;
+    position: relative;
+    width: auto; /* Allow width to adjust */
+  height: auto;
+  }
+  
+  /* .remove-button {
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    background-color: #ff5c5c;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    padding: 5px;
+  }
+  
+  .remove-button:hover {
+    background-color: #d64545;
+  } */
+
+  .remove-button {
+    position: absolute;
+    top: -10px;
+    right: -10px;
+    background-color: #ff5c5c;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    padding: 5px;
+    display: none;
+  }
+  
+  .remove-button:hover {
+    background-color: #d64545;
+  }
+
+  .chart:hover .remove-button{
+    display: block;
+  }
+  
+  
+  .resizable-box {
+    border: 1px solid #ccc;
+    background-color: white;
+    padding: 10px;
+  }
+  
+
+  .resizable-chart-box {
+    overflow: hidden; /* Prevent content from spilling */
+  }

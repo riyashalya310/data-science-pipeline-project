@@ -1,6 +1,16 @@
-import React, { useState,useRef,useEffect } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { FaTimes } from "react-icons/fa";
 import "./index.css";
+
+const convertToCSV = (data) => {
+  const header = Object.keys(data[0]).join(",");
+  const rows = data.map((row) =>
+    Object.values(row)
+      .map((value) => (value ? `"${value}"` : ""))
+      .join(",")
+  );
+  return [header, ...rows].join("\n");
+};
 
 const ChatSidebar = ({
   isOpen,
@@ -20,11 +30,17 @@ const ChatSidebar = ({
   numericalColumns,
   outlierColumns,
   selectedCategoricalColumn,
+  preprocessedData, // The preprocessed data to download
+  updatePreprocessedData,
+  awaitingScalingMethod,
+  setAwaitingScalingMethod,
+  setAwaitingScaleColumn,
 }) => {
   const [input, setInput] = useState("");
   const [dtypeInput, setDtypeInput] = useState("");
   const [selectedColumn, setSelectedColumn] = useState("");
   const [selectedEncodingMethod, setSelectedEncodingMethod] = useState("");
+  const [selectedScalingMethod, setSelectedScalingMethod] = useState("");
 
   const chatMessagesRef = useRef(null);
 
@@ -54,8 +70,12 @@ const ChatSidebar = ({
       onSend(selectedEncodingMethod);
       setSelectedEncodingMethod("");
     } else if (awaitingScaleColumn && selectedColumn) {
-      onSend(selectedColumn); // Send the selected column to be scaled
+      onSend(selectedColumn);
       setSelectedColumn(""); // Clear selected column after sending
+    } else if (awaitingScalingMethod && selectedScalingMethod) {
+      onSend(selectedScalingMethod); // Send the scaling method selected
+      setAwaitingScalingMethod(false); // Hide scaling method dropdown
+      setSelectedScalingMethod(""); // Clear selected scaling method after sending
     } else if (
       !awaitingColumnInput &&
       !awaitingOutlierConfirmation &&
@@ -65,6 +85,19 @@ const ChatSidebar = ({
     ) {
       onSend(input);
       setInput("");
+    }
+  };
+
+  const handleDownload = () => {
+    if (preprocessedData && preprocessedData.length > 0) {
+      const csv = convertToCSV(preprocessedData);
+      const blob = new Blob([csv], { type: "text/csv" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "preprocessed_data.csv";
+      a.click();
+      URL.revokeObjectURL(url); // Cleanup after download
     }
   };
 
@@ -94,6 +127,7 @@ const ChatSidebar = ({
     setSelectedColumn("");
   };
 
+
   useEffect(() => {
     if (chatMessagesRef.current) {
       // Use setTimeout to ensure scrolling occurs after DOM updates
@@ -110,7 +144,7 @@ const ChatSidebar = ({
         <FaTimes />
       </button>
       <div className="chat-content">
-        <div className="chat-messages"  ref={chatMessagesRef}>
+        <div className="chat-messages" ref={chatMessagesRef}>
           {messages.map((msg, index) => (
             <div key={index} className={`chat-message ${msg.type}`}>
               {msg.type === "bot" ? (
@@ -161,7 +195,11 @@ const ChatSidebar = ({
           <>
             <div className="confirmation-dropdown">
               <label>Do you want to remove outliers?</label>
-              <select onChange={(e) => handleOutlierConfirmationSelection(e.target.value)}>
+              <select
+                onChange={(e) =>
+                  handleOutlierConfirmationSelection(e.target.value)
+                }
+              >
                 <option value="">Select an option</option>
                 <option value="yes">Yes</option>
                 <option value="no">No</option>
@@ -190,7 +228,9 @@ const ChatSidebar = ({
           <>
             <div className="confirmation-dropdown">
               <label>Do you want to delete rows with null/empty values?</label>
-              <select onChange={(e) => handleNullDeletionSelection(e.target.value)}>
+              <select
+                onChange={(e) => handleNullDeletionSelection(e.target.value)}
+              >
                 <option value="">Select an option</option>
                 <option value="yes">Yes</option>
                 <option value="no">No</option>
@@ -267,6 +307,18 @@ const ChatSidebar = ({
             <button onClick={handleSend}>Send</button>
           </>
         )}
+        <button
+          onClick={handleDownload}
+          style={{
+            width: "100px",
+            fontSize: "10px",
+            height: "max-content",
+            backgroundColor: "#9a9a7f",
+          }}
+          className="download-button"
+        >
+          Download Preprocessed Data
+        </button>
       </div>
     </div>
   );

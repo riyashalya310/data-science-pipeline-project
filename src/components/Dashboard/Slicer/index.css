@@ -1,0 +1,40 @@
+/* dashboard.css */
+.slicer {
+    height: 200px; 
+    padding: 10px;
+    position: relative;
+    background-color: white;
+  }
+  
+  .value-list {
+    display: flex;
+    flex-wrap: wrap;
+    overflow-y: auto;
+    gap: 10px;
+  }
+  
+  .value-list label {
+    white-space: nowrap;
+  }
+
+  .remove-button {
+    position: absolute;
+    top: -15px;
+    right: -30px;
+    background-color: #ff5c5c;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    padding: 5px;
+    /* display: none; */
+  }
+
+  .slicer:hover .remove-button{
+    display: block;
+  }
+  
+  .remove-button:hover {
+    background-color: #d64545;
+  }
+  

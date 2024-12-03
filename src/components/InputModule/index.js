@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { withRouter } from "react-router-dom";
+import Joyride from "react-joyride";
 import Header from "../Header";
 import Footer from "../Footer";
 import "./index.css";
@@ -10,6 +11,7 @@ import { saveFileToIndexedDB } from "../../utils/indexedDB";
 
 const InputModule = (props) => {
   const [inputMethod, setInputMethod] = useState("");
+  const [tourActive, setTourActive] = useState(false);
   const [sampleDatabases, setSampleDatabases] = useState([]);
   const [selectedFile, setSelectedFile] = useState("");
   const [apiUrl, setApiUrl] = useState(""); // State to store the API URL
@@ -17,6 +19,76 @@ const InputModule = (props) => {
 
   const dispatch = useDispatch();
   const { history } = props;
+
+  const getSteps = (inputMethod) => {
+    const baseSteps = [
+      {
+        target: "h1",
+        disableBeacon: true,
+        content:
+          "Welcome to the ETL module! Here you can integrate, preprocess, and analyze your data.",
+      },
+      {
+        target: "#container",
+        disableBeacon: true,
+        content:
+          "This section provides a detailed explanation of the ETL process and its objectives.",
+      },
+      {
+        target: "select",
+        disableBeacon: true,
+        content:
+          "Select the input method here. You can upload your own file, use sample data, or fetch data from an API.",
+      },
+    ];
+
+    const conditionalSteps = {
+      "upload-yourself": [
+        {
+          target: "#formFile",
+          disableBeacon: true,
+          content:
+            "If you choose to upload a file, use this section to upload a CSV or JSON file.",
+        },
+      ],
+      "import-sample-data": [
+        {
+          target: ".dropdown",
+          disableBeacon: true,
+          content: "This dropdown lets you select and import sample databases.",
+        },
+      ],
+      "fetch-data-from-api": [
+        {
+          target: "input[type='text']",
+          disableBeacon: true,
+          content: "Provide an API URL here to fetch data dynamically.",
+        },
+        {
+          target: ".btn",
+          disableBeacon: true,
+          content:
+            "Click this button to submit your selected input and proceed.",
+        },
+      ],
+    };
+
+    return [...baseSteps, ...(conditionalSteps[inputMethod] || [])];
+  };
+
+  const steps = getSteps(inputMethod);
+
+  const startTour = () => {
+    setTourActive(true);
+  };
+
+  useEffect(() => {
+    console.log("tourActive changed:", tourActive); // Log whenever `tourActive` changes
+  }, [tourActive]);
+
+  useEffect(() => {
+    localStorage.removeItem("react-joyride:joyride");
+  }, []);
 
   // Function to process CSV files
   const processCSVFile = async (text, filename) => {
@@ -150,7 +222,29 @@ const InputModule = (props) => {
 
   return (
     <>
-      <Header onLogout={onLogout} />
+      {tourActive && (
+        <Joyride
+          steps={steps}
+          continuous
+          showProgress
+          showSkipButton
+          run={true}
+          disableBeacon={true}
+          callback={(data) => {
+            console.log(data);
+            if (data.status === "finished" || data.status === "skipped") {
+              setTourActive(false);
+            }
+          }}
+          styles={{
+            options: {
+              zIndex: 10000,
+            },
+          }}
+        />
+      )}
+
+      <Header onLogout={onLogout} startTour={startTour} />
       <div id="container" className="container-fluid">
         <div className="row">
           <div className="col-12">
@@ -413,5 +507,6 @@ const InputModule = (props) => {
     </>
   );
 };
+
 
 export default withRouter(InputModule);

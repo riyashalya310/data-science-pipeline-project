@@ -4,10 +4,19 @@ import {
   MdOutlineStackedBarChart,
   MdHorizontalDistribute,
 } from "react-icons/md";
-import { FaChartBar, FaChartArea, FaChartPie, FaFilter } from "react-icons/fa";
+import {
+  FaChartBar,
+  FaChartArea,
+  FaChartPie,
+  FaFilter,
+  FaArrowRight,
+} from "react-icons/fa";
+import Joyride from "react-joyride";
 import { FaTableCells } from "react-icons/fa6";
 import { AiOutlineLineChart } from "react-icons/ai";
+import { MdOutlineTour } from "react-icons/md";
 import { LuScatterChart } from "react-icons/lu";
+import { PiFilePdfLight } from "react-icons/pi";
 import { RiDonutChartFill } from "react-icons/ri";
 import { IoMdArrowBack } from "react-icons/io";
 import {
@@ -47,7 +56,7 @@ ChartJS.register(
   Legend
 );
 
-const AnalysisModule = () => {
+const AnalysisModule = (props) => {
   const files = useSelector((state) => state.user.files);
   const file = files.length > 0 ? files[files.length - 1] : null;
   const [charts, setCharts] = useState([]);
@@ -68,12 +77,13 @@ const AnalysisModule = () => {
   const [isDistributionVisible, setIsDistributionVisible] = useState(false);
 
   const [isCategorical, setIsCategorical] = useState(false);
-  const [remainingColumns, setRemainingColumns] = useState([]);
   const [selectedColumnsForAggregation, setSelectedColumnsForAggregation] =
     useState([]);
 
   const aggregateResultsRef = useRef(null);
   const analysisRef = useRef();
+
+  const [tourActive, setTourActive] = useState(false);
 
   // ----------for debugging to check if dtypes changed --------------------
   const expectedColumnTypes = {
@@ -111,8 +121,16 @@ const AnalysisModule = () => {
 
   // ------------------------------------------------------------------
 
+
+  
+
   const backBtn = () => {
     window.history.back();
+  };
+
+  const dashboardBtn = () => {
+    const { history } = props;
+    history.push("/dashboard");
   };
 
   // Function to toggle the dropdown menu
@@ -443,11 +461,6 @@ const AnalysisModule = () => {
     });
   };
 
-  // Modify the popup submission to use only numerical columns
-  const handlePopupClose = () => {
-    setIsPopupVisible(false);
-  };
-
   const handleChartTypeChange = (event) => {
     setChartType(event.target.value); // Set the selected chart type
     // Reset the charts to allow a fresh selection for each type
@@ -465,29 +478,27 @@ const AnalysisModule = () => {
       }
       return;
     }
-  
+
     if (isCategorical) {
-      // Step 1: Categorical column selected, proceed to numerical column selection
+      // Categorical column selected; switch to numerical selection
       setSelectedColumn(column);
-      setIsCategorical(false); // Move to numerical column selection
-      const numericalColumns = getNumericalColumns(); // Assume this retrieves numerical columns
+      setIsCategorical(false); // Proceed to numerical column selection
+      const numericalColumns = getNumericalColumns();
       setColumnsToSelect(numericalColumns);
     } else {
-      // Step 2: Numerical column selected, finalize aggregation
+      // Numerical column selected, finalize aggregation
       const updatedColumns = [...selectedColumnsForAggregation, column];
       setSelectedColumnsForAggregation(updatedColumns);
-  
+
       // Perform aggregation
       calculateAggregate(selectedFunction, updatedColumns);
       setIsPopupVisible(false);
 
-      // Scroll to the results section
       if (aggregateResultsRef.current) {
         aggregateResultsRef.current.scrollIntoView({ behavior: "smooth" });
       }
     }
-};
-
+  };
 
   const handlePopupCancel = () => {
     // Skip further column selection and proceed with current selections
@@ -565,10 +576,21 @@ const AnalysisModule = () => {
 
     if (selectedFunc) {
       setSelectedFunction(selectedFunc);
+
       const categoricalColumns = getStringColumns(); // Get categorical columns
-      setColumnsToSelect(categoricalColumns);
+      const numericalColumns = getNumericalColumns(); // Get numerical columns
+
+      if (categoricalColumns.length > 0) {
+        // If categorical columns exist, proceed with them
+        setColumnsToSelect(categoricalColumns);
+        setIsCategorical(true);
+      } else {
+        // If no categorical columns, directly proceed with numerical
+        setColumnsToSelect(numericalColumns);
+        setIsCategorical(false); // Skip the categorical step
+      }
+
       setIsPopupVisible(true);
-      setIsCategorical(true); // Set this flag to show categorical column selection first
       setSelectedColumnsForAggregation([]); // Reset selected columns for aggregation
     }
   };
@@ -599,9 +621,110 @@ const AnalysisModule = () => {
     setIsTableVisible(!isTableVisible);
   };
 
+  //for informative tour
+  const steps = [
+    {
+      target: ".file-analysis-upper-container",
+      disableBeacon: true,
+      content:
+        "Awesome!!! You have reached till here. So, this is the header of the Analysis module.",
+    },
+    {
+      target: "#back-button",
+      disableBeacon: true,
+      content:
+        "This is the button through which you can go back to the View Module module.",
+    },
+    {
+      target: "#download-btn",
+      disableBeacon: true,
+      content:
+        "This is the button through which you can download the pdf of the analysis part.",
+    },
+    {
+      target: ".file-name-analysis",
+      disableBeacon: true,
+      content: "Here you can see the name of the uploaded file.",
+    },
+    {
+      target: ".scrollable-table",
+      disableBeacon: true,
+      content: "This is the file you have just applied ETL transformations.",
+    },
+    {
+      target: ".analysis-options-container",
+      disableBeacon: true,
+      content:
+        "This container contains two different operations you can apply on the content.",
+    },
+    {
+      target: "#aggregate-function",
+      disableBeacon: true,
+      content: "From here you can apply different aggregations.",
+    },
+    {
+      target: "#analysis-type",
+      disableBeacon: true,
+      content:
+        "From this dropdown, you can apply different type of plots variations for multiple categories of columns.",
+    },
+    {
+      target: "#chart-icons-container",
+      disableBeacon: true,
+      content:
+        "From here you can choose different type of charts depending on the type of variation you chose from dropdown.",
+    },
+    {
+      target: ".dropzone-container",
+      disableBeacon: true,
+      content:
+        "Whooo!! Here, you can drag and drop the charts and on top of that you can drop the the column to show their respective charts.",
+    },
+    {
+      target: ".filter-and-table-container",
+      disableBeacon: true,
+      content: "Here are some other options you can try out for your data.",
+    },
+    {
+      target: "#dashboard-btn",
+      disableBeacon: true,
+      content: "Through this button, you can go to the dashboard module.",
+    },
+  ];
+
+  const startTour = () => {
+    setTourActive(true);
+  };
+
+  steps.forEach((step) => {
+    if (!document.querySelector(step.target)) {
+      console.warn(`Target not found: ${step.target}`);
+    }
+  });
+
   return (
     <>
       {/* <Header/> */}
+      <Joyride
+        steps={steps}
+        continuous
+        showProgress
+        showSkipButton
+        run={tourActive}
+        disableBeacon
+        disableOverlayClose={false}
+        callback={(data) => {
+          if (data.status === "finished" || data.status === "skipped") {
+            setTourActive(false);
+          }
+        }}
+        styles={{
+          options: {
+            zIndex: 10000,
+          },
+        }}
+      />
+
       <div className="file-display-analysis" ref={analysisRef}>
         {file ? (
           <div>
@@ -610,52 +733,96 @@ const AnalysisModule = () => {
                 type="button"
                 className="btn btn-primary"
                 onClick={backBtn}
+                id="back-button"
               >
                 <IoMdArrowBack />
                 Back
               </button>
               <button
+                id="download-btn"
                 type="button"
                 className="btn btn-secondary"
                 onClick={downloadPDF}
-                style={{ marginLeft: "10px", backgroundColor: "#ea70e0" }}
+                style={{
+                  marginLeft: "10px",
+                  backgroundColor: "#ea70e0",
+                  height: "50px",
+                }}
               >
-                Download PDF
+                <PiFilePdfLight size={30} />
+                {"    "}Download
               </button>
               <h2>
                 File Content:{" "}
                 <span className="file-name-analysis">{file.name}</span>
               </h2>
-            </div>
-            <div className="aggregate-functions-container">
-              <h1>Aggregate Functions</h1>
-              <div
+              <button
+                className="start-tour-btn"
                 style={{
-                  display: "flex",
-                  flexDirection: "row",
-                  justifyContent: "space-evenly",
+                  margin: "10px",
+                  height: "max-content",
+                  textAlign: "center",
+                  padding: "10px",
+                  backgroundColor: "rgb(143 89 170)",
                 }}
+                onClick={startTour}
               >
-                <div>
-                  <select
-                    value={selectedFunction}
-                    onChange={handleDropdownChange}
+                Start Tour{"     "}
+                <MdOutlineTour />
+              </button>
+              <button
+                type="button"
+                className="btn"
+                style={{ backgroundColor: "rgb(207 74 100)" }}
+                onClick={dashboardBtn}
+                id="dashboard-btn"
+              >
+                Dashboard <FaArrowRight />
+              </button>
+            </div>
+            <div className="analysis-options-container">
+              <div className="aggregate-functions-panel">
+                <h2 style={{ margin: "10px", textAlign: "center" }}>
+                  Analysis Options :
+                </h2>
+                <div className="analysis-dropdowns">
+                  <div
+                    className="dropdown-group"
+                    style={{ alignItems: "center" }}
                   >
-                    <option value="">Select Aggregate Function</option>
-                    <option value="average">Display Average</option>
-                    <option value="count">Display Count</option>
-                    <option value="sum">Display Sum</option>
-                    <option value="min">Display Min</option>
-                    <option value="max">Display Max</option>
-                  </select>
-                </div>
-                <div className="type-of-analysis">
-                  <select value={chartType} onChange={handleChartTypeChange}>
-                    <option value="">Select Type of Analysis</option>
-                    <option value="univariate">Univariate</option>
-                    <option value="bivariate">Bivariate</option>
-                    <option value="categorical">Categorical</option>
-                  </select>
+                    <label htmlFor="aggregate-function">
+                      Aggregate Functions:
+                    </label>
+                    <select
+                      id="aggregate-function"
+                      value={selectedFunction}
+                      onChange={handleDropdownChange}
+                    >
+                      <option value="">Select Aggregate Function</option>
+                      <option value="average">Display Average</option>
+                      <option value="count">Display Count</option>
+                      <option value="sum">Display Sum</option>
+                      <option value="min">Display Min</option>
+                      <option value="max">Display Max</option>
+                    </select>
+                  </div>
+
+                  <div
+                    className="dropdown-group"
+                    style={{ alignItems: "center" }}
+                  >
+                    <label htmlFor="analysis-type">Type of Analysis:</label>
+                    <select
+                      id="analysis-type"
+                      value={chartType}
+                      onChange={handleChartTypeChange}
+                    >
+                      <option value="">Select Type of Analysis</option>
+                      <option value="univariate">Univariate</option>
+                      <option value="bivariate">Bivariate</option>
+                      <option value="categorical">Categorical</option>
+                    </select>
+                  </div>
                 </div>
               </div>
             </div>
@@ -667,8 +834,21 @@ const AnalysisModule = () => {
                     style={{
                       width: isTableVisible ? "75%" : "100%",
                       transition: "width 0.3s ease-in-out",
+                      display: "flex",
+                      flexDirection: "column",
                     }}
                   >
+                    <h1
+                      style={{
+                        width: "40%",
+                        textAlign: "center",
+                        fontSize: "25px",
+                        alignSelf: "center",
+                        marginTop: "10px",
+                      }}
+                    >
+                      DropZone
+                    </h1>
                     <DropZone
                       onDrop={handleDrop}
                       onDropColumn={handleDropColumn}
@@ -724,7 +904,7 @@ const AnalysisModule = () => {
 
                   <div className="chart-icons-container">
                     <h1>Types of Charts :-</h1>
-                    <div>
+                    <div id="chart-icons-container">
                       {chartType !== "categorical" ? (
                         <>
                           <ChartIcon
@@ -785,26 +965,51 @@ const AnalysisModule = () => {
                       <div
                         className="filter-container"
                         onClick={() => setIsTablePopupVisible(true)}
+                        style={{
+                          display: "flex",
+                          flexDirection: "column",
+                          justifyContent: "space-evenly",
+                        }}
                       >
                         <FaTableCells />
+                        Editable Table
                       </div>
                       <div
                         className="filter-container"
+                        style={{
+                          display: "flex",
+                          flexDirection: "column",
+                          justifyContent: "space-evenly",
+                        }}
                         onClick={toggleDropdown}
                       >
                         <MdHorizontalDistribute size={25} />
+                        Probability Distribution
                       </div>
                     </div>
                   </div>
 
                   {isTableVisible && (
-                    <div className="table-container">
-                      <button
-                        className="toggle-btn"
-                        onClick={toggleTableVisibility}
+                    <div
+                      className="table-container"
+                      style={{ marginLeft: "20px" }}
+                    >
+                      <div
+                        style={{
+                          display: "flex",
+                          flexDirection: "row",
+                          justifyContent: "space-around",
+                        }}
                       >
-                        Hide Table
-                      </button>
+                        <h1 style={{ fontSize: "25px" }}>Table</h1>
+                        <button
+                          className="toggle-btn"
+                          onClick={toggleTableVisibility}
+                          style={{ height: "50px", padding: "10px" }}
+                        >
+                          Hide Table
+                        </button>
+                      </div>
                       <div className="scrollable-table">
                         <table className="file-table-analysis">
                           <thead>

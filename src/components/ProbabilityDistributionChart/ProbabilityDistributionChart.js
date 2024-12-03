@@ -76,6 +76,8 @@ const ProbabilityDistributionChart = ({
 }) => {
   const [skewness, setSkewness] = useState(0);
   const [kurtosis, setKurtosis] = useState(0);
+  const [skewnessExplain,toggleSkewnessExplain]=useState(false)
+  const [kurtosisExplain,togglekurtosisExplain]=useState(false)
 
   useEffect(() => {
     if (!isCategorical) {
@@ -104,22 +106,21 @@ const ProbabilityDistributionChart = ({
     ? data.map((item) => originalCategories[item.value] || item.value)
     : data.map((item) => item.value);
 
-    console.log(labels)
-    console.log(data)
+  console.log(labels);
+  console.log(data);
 
-    const chartData = {
-      labels: labels, // Use pre-processed labels for proper display
-      datasets: [
-        {
-          label: "Probability Distribution",
-          data: data.map((item) => item.probability),
-          backgroundColor: "rgba(75, 192, 192, 0.6)",
-          borderColor: "rgba(75, 192, 192, 1)",
-          borderWidth: 1,
-        },
-      ],
-    };
-    
+  const chartData = {
+    labels: labels, // Use pre-processed labels for proper display
+    datasets: [
+      {
+        label: "Probability Distribution",
+        data: data.map((item) => item.probability),
+        backgroundColor: "rgba(75, 192, 192, 0.6)",
+        borderColor: "rgba(75, 192, 192, 1)",
+        borderWidth: 1,
+      },
+    ],
+  };
 
   const options = {
     responsive: true,
@@ -193,6 +194,23 @@ const ProbabilityDistributionChart = ({
     return Math.abs(skewness) < 0.1 && Math.abs(kurtosis - 3) < 0.5;
   };
 
+
+  const handleDropdownChange = (event) => {
+    const topic = event.target.value;
+
+    if (topic==='skew') {
+      toggleSkewnessExplain(true)
+      togglekurtosisExplain(false)
+      } else if (topic==='kurt'){
+        togglekurtosisExplain(true)
+        toggleSkewnessExplain(false)
+      }
+      else{
+        togglekurtosisExplain(false)
+        toggleSkewnessExplain(false)
+      }
+    }
+
   return (
     <div
       style={{
@@ -201,33 +219,40 @@ const ProbabilityDistributionChart = ({
         marginBottom: "1200px",
       }}
     >
+      <label style={{fontStyle: "italic"}}>Theoretical Understanding :
+      <select onChange={handleDropdownChange} style={{width: "50%",marginLeft: "50px"}}>
+        <option value="">Show Explanation</option>
+        <option value="skew">Understand Skewness</option>
+        <option value="kurt">Understand Kurtosis</option>
+      </select>
+      </label>
       <div style={{ display: "flex", flexDirection: "row" }}>
-        <div style={{ width: "50%" }}>
-          <h3>Understanding Skewness</h3>
-          <Line
-            data={skewnessData}
-            options={{
-              ...lineOptions,
-              plugins: {
-                ...lineOptions.plugins,
-                title: { text: "Skewness Examples" },
-              },
-            }}
-          />
-        </div>
-        <div style={{ width: "50%" }}>
-          <h3>Understanding Kurtosis</h3>
-          <Line
-            data={kurtosisData}
-            options={{
-              ...lineOptions,
-              plugins: {
-                ...lineOptions.plugins,
-                title: { text: "Kurtosis Examples" },
-              },
-            }}
-          />
-        </div>
+        {skewnessExplain?<div style={{ width: "50%" }}>
+            <h3>Understanding Skewness</h3>
+            <Line
+              data={skewnessData}
+              options={{
+                ...lineOptions,
+                plugins: {
+                  ...lineOptions.plugins,
+                  title: { text: "Skewness Examples" },
+                },
+              }}
+            />
+        </div>:null}
+        {kurtosisExplain?<div style={{ width: "50%" }}>
+            <h3>Understanding Kurtosis</h3>
+            <Line
+              data={kurtosisData}
+              options={{
+                ...lineOptions,
+                plugins: {
+                  ...lineOptions.plugins,
+                  title: { text: "Kurtosis Examples" },
+                },
+              }}
+            />
+        </div>:null}
       </div>
       <h3>Probability Distribution for Selected Column</h3>
       <Bar data={chartData} options={options} />

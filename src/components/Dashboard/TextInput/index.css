@@ -1,0 +1,89 @@
+/* Container Styling */
+.text-box-container {
+  border: 1px solid #ccc;
+  position: relative;
+  transition: border-color 0.3s ease;
+}
+
+/* Text Box Styling */
+.text-box {
+  width: auto;
+  height: auto;
+  min-width: 50px;
+  border: none;
+  outline: none;
+  background: transparent;
+  font-size: 16px;
+  font-family: Arial, sans-serif;
+  color: #000;
+  text-align: left;
+  cursor: text;
+  white-space: nowrap;
+}
+
+/* Modal Styling */
+.text-box-modal {
+  position: absolute;
+  top: -200px;
+  left: 0;
+  width: 100%;
+  background-color: #fff;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  padding: 10px;
+  box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
+  z-index: 10;
+}
+
+/* Option Groups */
+.option-group {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 10px;
+}
+
+.option-group label {
+  font-size: 12px;
+  margin-bottom: 4px;
+}
+
+.option-group select,
+.option-group input[type="color"],
+.option-group input[type="number"] {
+  padding: 4px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+}
+
+/* Range Slider Styling */
+.option-group input[type="range"] {
+  width: 100%;
+  margin: 5px 0;
+}
+
+
+/* Remove Button */
+.remove-button-text {
+  position: absolute;
+  top: -10px;
+  right: -10px;
+  background-color: #ff5c5c;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  padding: 5px;
+}
+
+.remove-button-text:hover {
+  background-color: #d64545;
+}
+
+/* Hover Effects */
+.text-box-container:hover {
+  border-color: #0078d4;
+}
+
+.text-box-container:hover .remove-button-text {
+  display: block;
+}

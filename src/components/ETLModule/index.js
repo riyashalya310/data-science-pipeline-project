@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { useSelector, useDispatch } from "react-redux";
+import Joyride from "react-joyride";
 import { FaArrowRight } from "react-icons/fa";
+import { MdOutlineTour } from "react-icons/md";
 import { IoMdArrowBack } from "react-icons/io";
 import ChatSidebar from "../SideBar";
 import {
@@ -36,6 +38,9 @@ const stdDev = (values) =>
 const ETLModule = (props) => {
   const files = useSelector((state) => state.user.files);
   const file = files.length > 0 ? files[files.length - 1] : null;
+
+  console.log(file);
+
   const [isChatOpen, setIsChatOpen] = useState(true);
   const [messages, setMessages] = useState([
     {
@@ -52,7 +57,6 @@ const ETLModule = (props) => {
   const [columns, setColumns] = useState(
     file ? Object.keys(file.content[0]) : []
   );
-  const [scalingColumns, setScalingColumns] = useState(false);
   const [awaitingScaleColumn, setAwaitingScaleColumn] = useState(false);
   const [numericalColumns, setNumericalColumns] = useState([]);
   const [outlierColumns, setOutlierColumns] = useState([]);
@@ -70,8 +74,11 @@ const ETLModule = (props) => {
   const [awaitingEncodingMethod, setAwaitingEncodingMethod] = useState(false);
   const [categoricalColumns, setCategoricalColumns] = useState([]);
   const [originalColumnTypes, setOriginalColumnTypes] = useState({});
+  const [preprocessedData, setPreprocessedData] = useState(file.content);
+  const [awaitingScalingMethod,setAwaitingScalingMethod]=useState("");
 
   const dispatch = useDispatch();
+  const [tourActive, setTourActive] = useState(false);
 
   const [table, setTable] = useState(file.content);
 
@@ -175,6 +182,11 @@ const ETLModule = (props) => {
     initializeColumnTypes();
   }, [filteredContent]);
 
+
+  const updatePreprocessedData = (newData) => {
+    setPreprocessedData(newData); // Update the preprocessed data
+  };
+
   const handleSendMessage = async (message) => {
     let updatedContent = [...filteredContent];
     let initialMessage = "";
@@ -263,6 +275,7 @@ const ETLModule = (props) => {
             categoricalColumns: encodedCategories, // Store encoded categories mapping
           })
         );
+        
       } else {
         setMessages((prevMessages) => [
           ...prevMessages,
@@ -371,6 +384,7 @@ const ETLModule = (props) => {
 
         // Update the table and state with encoded data
         setFilteredContent(encodedContent);
+        updatePreprocessedData(encodedContent);
         setTable(encodedContent);
         console.log(encodedContent);
         console.log(table);
@@ -397,128 +411,7 @@ const ETLModule = (props) => {
       return;
     }
 
-    // Step 2: Column selection
-    if (awaitingCategoricalColumn) {
-      const selectedColumn = message.trim();
-      const categoricalColumns = Object.keys(filteredContent[0]).filter(
-        (col) => typeof filteredContent[0][col] === "string"
-      );
-
-      if (categoricalColumns.includes(selectedColumn)) {
-        setMessages((prevMessages) => [
-          ...prevMessages,
-          { type: "bot", text: `You selected the column: ${selectedColumn}` },
-          {
-            type: "bot",
-            text: "There are several encoding methods available: \n\n1. One-hot Encoding: Creates a new binary column for each category.\n\n2. Label Encoding: Assigns a unique integer to each category.\n\n3. Ordinal Encoding: Similar to Label Encoding but assumes an order.\n\nPlease select an encoding method from the dropdown.",
-          },
-        ]);
-        setSelectedCategoricalColumn(selectedColumn); // Store the selected column
-        setAwaitingEncodingMethod(true); // Move to encoding method selection
-        setAwaitingCategoricalColumn(false);
-      } else {
-        setMessages((prevMessages) => [
-          ...prevMessages,
-          { type: "bot", text: "Invalid column. Please try again." },
-        ]);
-      }
-      return;
-    }
-
-    // Step 3: Encoding method selection
-    if (awaitingEncodingMethod) {
-      const encodingMethod = message.trim().toLowerCase();
-
-      const validEncodings = [
-        "one-hot encoding",
-        "label encoding",
-        "ordinal encoding",
-      ];
-
-      if (validEncodings.includes(encodingMethod)) {
-        initialMessage = `Applying ${encodingMethod} to the column: ${selectedCategoricalColumn}`;
-
-        let encodedContent = [...updatedContent];
-
-        if (encodingMethod === "one-hot encoding") {
-          // Implement One-hot Encoding
-          const uniqueValues = [
-            ...new Set(
-              encodedContent.map((row) => row[selectedCategoricalColumn])
-            ),
-          ];
-          encodedContent = encodedContent.map((row) => {
-            const newRow = { ...row };
-            uniqueValues.forEach((value) => {
-              newRow[`${selectedCategoricalColumn}_${value}`] =
-                row[selectedCategoricalColumn] === value ? 1 : 0;
-            });
-            delete newRow[selectedCategoricalColumn];
-            return newRow;
-          });
-          finalMessage = `One-hot encoding applied to column ${selectedCategoricalColumn}.`;
-        } else if (encodingMethod === "label encoding") {
-          // Implement Label Encoding
-          const uniqueValues = [
-            ...new Set(
-              encodedContent.map((row) => row[selectedCategoricalColumn])
-            ),
-          ];
-          const labelMap = uniqueValues.reduce((acc, value, index) => {
-            acc[value] = index;
-            return acc;
-          }, {});
-          encodedContent = encodedContent.map((row) => ({
-            ...row,
-            [selectedCategoricalColumn]:
-              labelMap[row[selectedCategoricalColumn]],
-          }));
-          finalMessage = `Label encoding applied to column ${selectedCategoricalColumn}.`;
-        } else if (encodingMethod === "ordinal encoding") {
-          // Implement Ordinal Encoding
-          const uniqueValues = [
-            ...new Set(
-              encodedContent.map((row) => row[selectedCategoricalColumn])
-            ),
-          ];
-          const ordinalMap = uniqueValues.reduce((acc, value, index) => {
-            acc[value] = index + 1; // Start from 1
-            return acc;
-          }, {});
-          encodedContent = encodedContent.map((row) => ({
-            ...row,
-            [selectedCategoricalColumn]:
-              ordinalMap[row[selectedCategoricalColumn]],
-          }));
-          finalMessage = `Ordinal encoding applied to column ${selectedCategoricalColumn}.`;
-        }
-
-        // Update the table and state with encoded data
-        setFilteredContent(encodedContent);
-        setTable(encodedContent);
-        console.log(encodedContent);
-        console.log(table);
-        dispatch(updateFile({ name: file.name, content: encodedContent }));
-
-        setMessages((prevMessages) => [
-          ...prevMessages,
-          { type: "bot", text: initialMessage },
-          { type: "bot", text: finalMessage },
-          {
-            type: "bot",
-            text: "Please select an option from the dropdown below.",
-          },
-        ]);
-
-        setAwaitingEncodingMethod(false); // Exit encoding method selection
-      } else {
-        setMessages((prevMessages) => [
-          ...prevMessages,
-          { type: "bot", text: "Invalid encoding method. Please try again." },
-        ]);
-      }
-      return;
-    }
+    
 
     // Handle null/empty row deletion confirmation
     if (awaitingNullDeletionConfirmation) {
@@ -533,6 +426,7 @@ const ETLModule = (props) => {
         finalMessage = "Rows with null/empty values have been deleted.";
 
         setFilteredContent(updatedContentWithoutNulls);
+        updatePreprocessedData(updatedContentWithoutNulls);
         setTable(updatedContentWithoutNulls);
         dispatch(
           updateFile({ name: file.name, content: updatedContentWithoutNulls })
@@ -632,6 +526,7 @@ const ETLModule = (props) => {
         setFilteredContent(cleanedData);
         setTable(cleanedData); // Update the table with filtered data
         dispatch(updateFile({ name: file.name, content: cleanedData }));
+        updatePreprocessedData(cleanedData);
 
         finalMessage = "Outliers removed from all columns.";
       } else {
@@ -654,8 +549,9 @@ const ETLModule = (props) => {
           });
 
           setFilteredContent(cleanedData);
-          setTable(cleanedData); // Update the table with filtered data
+          setTable(cleanedData); 
           dispatch(updateFile({ name: file.name, content: cleanedData }));
+          updatePreprocessedData(cleanedData);
 
           finalMessage = `Outliers removed from column: ${selectedColumn}`;
         } else {
@@ -715,6 +611,7 @@ const ETLModule = (props) => {
         finalMessage = `Data type of column '${columnName}' changed to '${dtype}'.`;
 
         setFilteredContent(updatedContent);
+        updatePreprocessedData(updatedContent);
         setAwaitingColumnInput(false);
 
         dispatch(
@@ -765,20 +662,20 @@ const ETLModule = (props) => {
           text: "If you want to change the data type of any column, write it as - {column name} : {dtype:}, or type 'no' to skip.",
         },
       ]);
-    }else if (message === "Provide a snapshot of the data") {
+    } else if (message === "Provide a snapshot of the data") {
       const initialMessage = "Fetching a snapshot of the data...";
-    
+
       // Show the first 5 rows of the data as a snapshot
       const snapshot = filteredContent.slice(0, 5);
       const tableHeaders = Object.keys(filteredContent[0]);
-    
+
       // Create table for the data snapshot
       let snapshotTable = `<table class="data-table" cellpadding="5" cellspacing="0"><thead><tr>`;
       tableHeaders.forEach((header) => {
         snapshotTable += `<th>${header}</th>`;
       });
       snapshotTable += `</tr></thead><tbody>`;
-    
+
       // Generate rows for the snapshot table
       snapshot.forEach((row) => {
         snapshotTable += `<tr>`;
@@ -788,7 +685,7 @@ const ETLModule = (props) => {
         snapshotTable += `</tr>`;
       });
       snapshotTable += `</tbody></table>`;
-    
+
       // Provide column info (e.g., name, non-null counts, data types)
       const columnInfo = tableHeaders.map((col) => {
         const nonNullValues = filteredContent.filter(
@@ -796,7 +693,7 @@ const ETLModule = (props) => {
         ).length;
         return { col, nonNullValues, dataType: typeof filteredContent[0][col] };
       });
-    
+
       // Create column info table (matching the snapshot table's structure and styles)
       let columnInfoTable = `
         <table class="data-table" cellpadding="5" cellspacing="0" style="border: 1px solid #ddd; border-collapse: collapse;">
@@ -808,7 +705,7 @@ const ETLModule = (props) => {
             </tr>
           </thead>
           <tbody>`;
-    
+
       columnInfo.forEach(({ col, nonNullValues, dataType }) => {
         columnInfoTable += `
           <tr>
@@ -817,16 +714,16 @@ const ETLModule = (props) => {
             <td style="border: 1px solid #ddd;padding: 10px">${dataType}</td>
           </tr>`;
       });
-    
+
       columnInfoTable += `</tbody></table>`;
-    
+
       // Wrap the column info table with a div that has overflow-x: auto;
       const columnInfoWithScroll = `<div style="overflow-x: auto; margin: 10px 0; max-width: 100%;">${columnInfoTable}</div>`;
-    
+
       // Infer domain and sector
       const sectorInfo =
         "This dataset appears to contain general tabular data. It may be applicable to sectors such as finance, healthcare, retail, or other data-driven domains depending on the columns and values.";
-    
+
       // Send messages to the chat
       setMessages((prevMessages) => [
         ...prevMessages,
@@ -841,11 +738,9 @@ const ETLModule = (props) => {
           text: "Please select an option from the dropdown below.",
         },
       ]);
-    
+
       return; // Exit after handling this option
-    }
-    
-    else if (message === "Remove NA/Null/Empty Values") {
+    } else if (message === "Remove NA/Null/Empty Values") {
       initialMessage = "Checking for rows with null/empty values...";
 
       // Identify rows with null or empty values
@@ -908,6 +803,7 @@ const ETLModule = (props) => {
       setFilteredContent(updatedContent);
       setTable(updatedContent);
       dispatch(updateFile({ name: file.name, content: table }));
+      updatePreprocessedData(updatedContent);
 
       setMessages((prevMessages) => [
         ...prevMessages,
@@ -996,6 +892,7 @@ const ETLModule = (props) => {
         ]);
 
         setTable(updatedContent);
+        updatePreprocessedData(table);
         dispatch(updateFile({ name: file.name, content: table }));
       } else {
         setMessages((prevMessages) => [
@@ -1030,6 +927,7 @@ const ETLModule = (props) => {
         setAwaitingScaleColumn(false); // Reset dropdown state
 
         dispatch(updateFile({ name: file.name, content: table }));
+        updatePreprocessedData(table);
 
         setMessages((prevMessages) => [
           ...prevMessages,
@@ -1104,8 +1002,81 @@ const ETLModule = (props) => {
     dispatch(updateFile({ name: file.name, content: table }));
   };
 
+  const steps = [
+    {
+      target: ".etl-header",
+      content: "This is the header of the ETL module.",
+      disableBeacon: true,
+    },
+    {
+      target: ".file-name",
+      content: "Here you can see the name of the uploaded file.",
+      disableBeacon: true,
+    },
+    {
+      target: "#back-button",
+      content:
+        "This is the button through which you can go back to the Input module.",
+        disableBeacon: true,
+    },
+    {
+      target: ".file-table",
+      content: "This is the content of the file you just imported.",
+      disableBeacon: true,
+    },
+    {
+      target: "#columns-header",
+      content: "Here you can see the names of the columns present in the file.",
+      disableBeacon: true,
+    },
+    {
+      target: ".chat-content",
+      content: "This is the your personal chatbot",
+      disableBeacon: true,
+    },
+    {
+      target: ".chat-input-container",
+      content: "From here you can give different inputs to the chatbot",
+      disableBeacon: true,
+    },
+    {
+      target: "#final-button",
+      content:
+        "This is the button through which you can go to the next module for final view.",
+        disableBeacon: true,
+    },
+  ];
+
+  const startTour = () => {
+    setTourActive(true); 
+  };
+
+  steps.forEach((step) => {
+    if (!document.querySelector(step.target)) {
+      console.warn(`Target not found: ${step.target}`);
+    }
+  });
+
   return (
     <>
+      <Joyride
+        steps={steps}
+        continuous
+        showProgress
+        showSkipButton
+        run={tourActive}
+        disableBeacon
+        callback={(data) => {
+          if (data.status === "finished" || data.status === "skipped") {
+            setTourActive(false);
+          }
+        }}
+        styles={{
+          options: {
+            zIndex: 10000,
+          },
+        }}
+      />
       <div className="etl-module-container">
         <div
           className={`etl-content ${
@@ -1119,6 +1090,7 @@ const ETLModule = (props) => {
                   type="button"
                   className="btn btn-primary"
                   onClick={backBtn}
+                  id="back-button"
                 >
                   <IoMdArrowBack />
                   Back
@@ -1127,10 +1099,25 @@ const ETLModule = (props) => {
                   File Content: <span className="file-name">{file.name}</span>
                 </h2>
                 <button
+                  className="start-tour-btn"
+                  style={{
+                    margin: "10px",
+                    height: "35px",
+                    textAlign: "center",
+                    alignContent: "center",
+                    padding: "4px 10px 0 10px",
+                    backgroundColor: "rgb(143 89 170)",
+                  }}
+                  onClick={startTour}
+                >
+                  Start Tour{"     "}<MdOutlineTour/>
+                </button>
+                <button
                   type="button"
                   className="btn btn-primary"
                   onClick={moveToAnalysisBtn}
                   style={{ marginRight: "40px" }}
+                  id="final-button"
                 >
                   Final View
                   <FaArrowRight />
@@ -1166,7 +1153,7 @@ const ETLModule = (props) => {
                         ref={provided.innerRef}
                         {...provided.droppableProps}
                       >
-                        <thead>
+                        <thead id="columns-header">
                           <tr>
                             <th>Index</th>
                             {columns.map((col, index) => (
@@ -1261,6 +1248,8 @@ const ETLModule = (props) => {
               "Encode Categorical Columns",
               "Exit",
             ]}
+            preprocessedData={preprocessedData}
+            updatePreprocessedData={updatePreprocessedData}
             messages={messages}
             awaitingColumnInput={awaitingColumnInput}
             awaitingTypeChange={awaitingTypeChange}
@@ -1275,6 +1264,8 @@ const ETLModule = (props) => {
             numericalColumns={numericalColumns}
             awaitingScaleColumn={awaitingScaleColumn}
             setAwaitingScaleColumn={setAwaitingScaleColumn}
+            awaitingScalingMethod={awaitingScalingMethod}
+            setAwaitingScalingMethod={setAwaitingScalingMethod}
           />
         )}
       </div>
