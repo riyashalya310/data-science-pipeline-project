@@ -1,7 +1,10 @@
 import React, { useState, useRef } from "react";
 import { useDrag, useDrop } from "react-dnd";
 import { useSelector } from "react-redux";
+import { toast,ToastContainer } from "react-toastify";
 import { CiSquareRemove } from "react-icons/ci";
+import { FaChartLine, FaTextHeight, FaFilter } from "react-icons/fa";
+import { IoMdArrowBack } from "react-icons/io";
 import { MdDashboard } from "react-icons/md";
 import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
@@ -9,6 +12,7 @@ import Slicer from "./Slicer";
 import Chart from "./Chart";
 import TextBox from "./TextInput";
 import "./index.css";
+import "react-toastify/dist/ReactToastify.css";
 
 const Dashboard = (props) => {
   const files = useSelector((state) => state.user.files);
@@ -21,6 +25,7 @@ const Dashboard = (props) => {
 
   const [draggingType, setDraggingType] = useState(false); // Track the type being dragged
   const dashboardRef = useRef();
+
 
   // Function to add new elements
   const addElement = (type) => {
@@ -47,7 +52,6 @@ const Dashboard = (props) => {
   const removeElement = (id) => {
     setElements(elements.filter((el) => el.id !== id));
   };
-
 
   // Function to move elements within the dashboard
   const moveElement = (draggedId, droppedId) => {
@@ -168,36 +172,42 @@ const Dashboard = (props) => {
 
   // Function to download dashboard as PDF
   const downloadPDF = () => {
+    toast.info("Your dashboard is being saved..."); // Show non-blocking toast
+
     const input = dashboardRef.current;
 
-    // Configure options for html2canvas to ensure proper scaling
     const canvasOptions = {
       scale: 2, // Higher scale for better quality
-      useCORS: true, // Ensure cross-origin images are included
+      useCORS: true,
       allowTaint: true,
       logging: true,
       backgroundColor: isNightMode ? "#000" : "#fff", // Match the night/light mode background
     };
 
-    html2canvas(input, canvasOptions).then((canvas) => {
-      const imgData = canvas.toDataURL("image/png");
+    html2canvas(input, canvasOptions)
+      .then((canvas) => {
+        const imgData = canvas.toDataURL("image/png");
 
-      const pdf = new jsPDF("p", "mm", "a4");
-      const pdfWidth = pdf.internal.pageSize.getWidth();
-      const pdfHeight = pdf.internal.pageSize.getHeight();
+        const pdf = new jsPDF("p", "mm", "a4");
+        const pdfWidth = pdf.internal.pageSize.getWidth();
+        const pdfHeight = pdf.internal.pageSize.getHeight();
 
-      // Calculate the required scaling to fit the canvas into the PDF
-      const canvasWidth = canvas.width;
-      const canvasHeight = canvas.height;
-      const scale = Math.min(pdfWidth / canvasWidth, pdfHeight / canvasHeight);
+        const canvasWidth = canvas.width;
+        const canvasHeight = canvas.height;
+        const scale = Math.min(pdfWidth / canvasWidth, pdfHeight / canvasHeight);
 
-      const scaledWidth = canvasWidth * scale;
-      const scaledHeight = canvasHeight * scale;
+        const scaledWidth = canvasWidth * scale;
+        const scaledHeight = canvasHeight * scale;
 
-      pdf.addImage(imgData, "PNG", 0, 0, scaledWidth, scaledHeight);
+        pdf.addImage(imgData, "PNG", 0, 0, scaledWidth, scaledHeight);
 
-      pdf.save(`${file ? `${file.name}-dashboard` : "dashboard"}.pdf`);
-    });
+        pdf.save(`${file ? `${file.name}-dashboard` : "dashboard"}.pdf`);
+        toast.success("Dashboard saved successfully!"); // Success message
+      })
+      .catch((error) => {
+        console.error("Error saving the dashboard:", error);
+        toast.error("Error saving the dashboard!"); // Error message
+      });
   };
 
   // Delete Area Component
@@ -241,14 +251,27 @@ const Dashboard = (props) => {
 
   return (
     <div
-      className={`dashboard-container ${isNightMode ? "night-mode" : "light-mode"}`}
+      className={`dashboard-container ${
+        isNightMode ? "night-mode" : "light-mode"
+      }`}
     >
+      <ToastContainer />
       {/* Toolbar */}
       <div className="toolbar">
-        <button onClick={() => addElement("slicer")}>Add Slicer</button>
-        <button onClick={() => addElement("chart")}>Add Chart</button>
-        <button onClick={() => addElement("text")}>Add Text Input</button>
-        <button onClick={prevBtnAnalysis}>Back</button>
+        <button onClick={prevBtnAnalysis}>
+        <IoMdArrowBack size={22}/>{"   "}Back
+        </button>
+        <button onClick={() => addElement("slicer")}>
+          Add Slicer {"    "} <FaFilter />
+        </button>
+        <button onClick={() => addElement("chart")}>
+          Add Chart {"    "}
+          <FaChartLine />
+        </button>
+        <button onClick={() => addElement("text")}>
+          Add Text Input {"    "}
+          <FaTextHeight />
+        </button>
       </div>
 
       <button className="download-btn" onClick={downloadPDF}>

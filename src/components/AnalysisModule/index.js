@@ -1,5 +1,6 @@
 import React, { useRef, useState } from "react";
 import { useSelector } from "react-redux";
+import { toast,ToastContainer } from "react-toastify";
 import {
   MdOutlineStackedBarChart,
   MdHorizontalDistribute,
@@ -42,6 +43,7 @@ import "./index.css";
 import XYColumnSelectionPopup from "../XYColumnSelectionPopup";
 import TableInputPopup from "../TableInputPopup";
 import ProbabilityDistributionChart from "../ProbabilityDistributionChart/ProbabilityDistributionChart";
+import "react-toastify/dist/ReactToastify.css";
 
 // Register the required components for Chart.js
 ChartJS.register(
@@ -120,9 +122,6 @@ const AnalysisModule = (props) => {
   }, [file]);
 
   // ------------------------------------------------------------------
-
-
-  
 
   const backBtn = () => {
     window.history.back();
@@ -604,7 +603,7 @@ const AnalysisModule = (props) => {
   };
 
   const downloadPDF = () => {
-    console.log("download hit");
+    toast.info("Your dashboard is being saved..."); 
     const input = analysisRef.current;
     html2canvas(input).then((canvas) => {
       const imgData = canvas.toDataURL("image/png");
@@ -614,6 +613,10 @@ const AnalysisModule = (props) => {
       const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
       pdf.addImage(imgData, "PNG", 0, 0, pdfWidth, pdfHeight);
       pdf.save(`${file ? file.name : "analysis"}.pdf`);
+      toast.success("Dashboard saved successfully!");
+    }).catch((error) => {
+      console.error("Error saving the dashboard:", error);
+      toast.error("Error saving the dashboard!"); // Error message
     });
   };
 
@@ -705,6 +708,7 @@ const AnalysisModule = (props) => {
   return (
     <>
       {/* <Header/> */}
+      <ToastContainer/>
       <Joyride
         steps={steps}
         continuous
